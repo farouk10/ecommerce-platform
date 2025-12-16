@@ -9,7 +9,7 @@ spring:
       timeout: 60000
 
 server:
-  port: 8085
+  port: 8084
 
 # JWT Configuration
 jwt:

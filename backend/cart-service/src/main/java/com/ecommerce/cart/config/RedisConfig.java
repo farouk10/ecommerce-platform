@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
@@ -19,13 +19,20 @@ public class RedisConfig {
         RedisTemplate<String, Cart> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
-        // Configure ObjectMapper for LocalDateTime
+        // Configure ObjectMapper for LocalDateTime AND type information
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        // JSON Serializer for Cart
-        Jackson2JsonRedisSerializer<Cart> serializer = new Jackson2JsonRedisSerializer<>(objectMapper, Cart.class);
+        // CRITICAL: Enable default typing to preserve class information
+        // This prevents LinkedHashMap deserialization issue
+        objectMapper.activateDefaultTyping(
+                objectMapper.getPolymorphicTypeValidator(),
+                ObjectMapper.DefaultTyping.NON_FINAL,
+                com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY);
+
+        // Use Generic serializer which is more robust
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
 
         // Key serializer (String)
         template.setKeySerializer(new StringRedisSerializer());
@@ -39,4 +46,3 @@ public class RedisConfig {
         return template;
     }
 }
-

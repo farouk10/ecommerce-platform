@@ -62,7 +62,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
               // Rejouer la requête initiale avec le nouveau token
               return next(
-                req.clone({
+                authReq.clone({
                   setHeaders: {
                     Authorization: `Bearer ${tokenResponse.accessToken}`,
                   },
@@ -83,7 +83,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             take(1),
             switchMap((jwt) => {
               return next(
-                req.clone({
+                authReq.clone({
                   setHeaders: { Authorization: `Bearer ${jwt}` },
                 })
               );

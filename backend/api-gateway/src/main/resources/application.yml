@@ -15,15 +15,19 @@ spring:
         - id: product-service
           uri: ${PRODUCT_SERVICE_URL:http://localhost:8082}
           predicates:
-            - Path=/api/products/**
-        - id: cart-service
-          uri: ${CART_SERVICE_URL:http://localhost:8085}
-          predicates:
-            - Path=/api/cart/**
+            - Path=/api/products/**, /api/categories/**
         - id: order-service
           uri: ${ORDER_SERVICE_URL:http://localhost:8083}
           predicates:
             - Path=/api/orders/**
+        - id: cart-service
+          uri: ${CART_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/cart/**
+        - id: admin-service
+          uri: ${ADMIN_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/admin/**
 
 logging:
   level:
@@ -47,23 +51,19 @@ spring:
         - id: product-service
           uri: ${PRODUCT_SERVICE_URL:http://product-service:8082}
           predicates:
-            - Path=/api/products/**
-        - id: product-categories
-          uri: ${PRODUCT_SERVICE_URL:http://product-service:8082}
-          predicates:
-            - Path=/api/categories/**
-        - id: admin-orders
-          uri: ${ORDER_SERVICE_URL:http://order-service:8083}
-          predicates:
-            - Path=/api/admin/**
-        - id: cart-service
-          uri: ${CART_SERVICE_URL:http://cart-service:8085}
-          predicates:
-            - Path=/api/cart/**
+            - Path=/api/products/**, /api/categories/**
         - id: order-service
           uri: ${ORDER_SERVICE_URL:http://order-service:8083}
           predicates:
             - Path=/api/orders/**
+        - id: cart-service
+          uri: ${CART_SERVICE_URL:http://cart-service:8084}
+          predicates:
+            - Path=/api/cart/**
+        - id: admin-service
+          uri: ${ADMIN_SERVICE_URL:http://admin-service:8085}
+          predicates:
+            - Path=/api/admin/**
 
       globalcors:
         cors-configurations:

@@ -29,10 +29,10 @@ public class CartController {
     private final CartService cartService;
     private final CheckoutService checkoutService;
 
-
     @GetMapping
     public ResponseEntity<Cart> getCart(Authentication authentication) {
         String userId = authentication.getName();
+        log.info("Requesting cart for user: {}", userId);
         Cart cart = cartService.getCart(userId);
         return ResponseEntity.ok(cart);
     }
@@ -171,10 +171,10 @@ public class CartController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             log.error("❌ Direct Checkout failed: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Checkout failed: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Checkout failed: " + e.getMessage()));
         }
     }
-
 
     @DeleteMapping
     public ResponseEntity<Void> clearCart(Authentication authentication) {

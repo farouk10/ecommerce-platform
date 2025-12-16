@@ -38,3 +38,9 @@ logs/
 
 # Secrets
 .env
+
+# Test files and results
+comprehensive_tests.sh
+test_results.log
+*_test.sh
+test-results/
