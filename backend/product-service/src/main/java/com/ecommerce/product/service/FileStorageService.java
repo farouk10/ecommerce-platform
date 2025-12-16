@@ -21,7 +21,9 @@ public class FileStorageService {
     private final Path fileStorageLocation;
 
     public FileStorageService() {
-        this.fileStorageLocation = Paths.get("uploads").toAbsolutePath().normalize();
+        // Use /app/uploads to match Docker volume mount
+        this.fileStorageLocation = Paths.get("/app/uploads").toAbsolutePath().normalize();
+        System.out.println("🗂️  File storage location: " + this.fileStorageLocation);
     }
 
     @PostConstruct
@@ -43,10 +45,13 @@ public class FileStorageService {
             }
 
             Path targetLocation = this.fileStorageLocation.resolve(fileName);
+            System.out.println("📁 Saving file to: " + targetLocation.toAbsolutePath());
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            System.out.println("✅ File saved successfully: " + fileName);
 
             return fileName;
         } catch (IOException ex) {
+            System.err.println("❌ Error saving file: " + ex.getMessage());
             throw new RuntimeException("Could not store file " + fileName + ". Please try again!", ex);
         }
     }

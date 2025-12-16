@@ -37,7 +37,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/*/health").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/products/upload").permitAll() // DEBUG: Allow uploads
-                        .requestMatchers("/uploads/**").permitAll() // Allow serving images
+                        .requestMatchers("/api/products/uploads/**").permitAll() // Allow serving images
                         .requestMatchers("/api/products/batch").permitAll() // Allow batch retrieval
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()

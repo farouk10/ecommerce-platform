@@ -85,8 +85,11 @@ services:
       - SPRING_DATA_REDIS_PORT=6379
     depends_on:
       - postgres
+      - redis
     networks:
       - ecommerce-network
+    volumes:
+      - product-uploads:/app/uploads
 
   order-service:
     build: ./backend/order-service
@@ -171,3 +174,4 @@ networks:
 
 volumes:
   postgres_data:
+  product-uploads:

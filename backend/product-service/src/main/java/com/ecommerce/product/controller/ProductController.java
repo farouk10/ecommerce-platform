@@ -6,6 +6,7 @@ import com.ecommerce.product.dto.UpdateProductRequest;
 import com.ecommerce.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +25,9 @@ public class ProductController {
 
     private final ProductService productService;
     private final com.ecommerce.product.service.FileStorageService fileStorageService;
+
+    @Value("${app.public-url}")
+    private String publicUrl;
 
     @GetMapping("/health")
     public Map<String, String> health() {
@@ -147,6 +151,20 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductsByIds(ids));
     }
 
+    @GetMapping("/uploads/{fileName:.+}")
+    public ResponseEntity<org.springframework.core.io.Resource> serveFile(@PathVariable String fileName) {
+        try {
+            org.springframework.core.io.Resource resource = fileStorageService.loadFileAsResource(fileName);
+            return ResponseEntity.ok()
+                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"" + resource.getFilename() + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            log.error("Error serving file {}: {}", fileName, e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping("/upload")
     public ResponseEntity<List<String>> uploadFiles(
             @RequestParam("files") org.springframework.web.multipart.MultipartFile[] files) {
@@ -159,11 +177,10 @@ public class ProductController {
                 fileNames.add(fileName);
             }
 
-            // Construct URLs
-            String baseUrl = org.springframework.web.servlet.support.ServletUriComponentsBuilder
-                    .fromCurrentContextPath().build().toUriString();
+            // Construct URLs using public API gateway URL
             for (String fileName : fileNames) {
-                fileUrls.add(baseUrl + "/uploads/" + fileName);
+                // URL format: http://localhost/api/products/uploads/{filename}
+                fileUrls.add(publicUrl + "/api/products/uploads/" + fileName);
             }
 
             return ResponseEntity.ok(fileUrls);

@@ -5,6 +5,10 @@ server:
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
     min-response-size: 1024
 
+# Application Configuration
+app:
+  public-url: ${PUBLIC_URL:http://localhost}  # API Gateway public URL
+
 spring:
   application:
     name: product-service
