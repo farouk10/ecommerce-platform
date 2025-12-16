@@ -28,12 +28,17 @@ spring:
     clean-disabled: false
     locations: classpath:db/migration
 
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ecommerce}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:ecommerce123}
+
 logging:
   level:
     com.ecommerce.order: DEBUG
 
 jwt:
-  secret: "5a530903feea688bc39f02fedc6417f24767928cf2b769bc267047e1d88b16e9780134dfbba5376d33eae7990ef656f591c9e5127b9b2ab2adff43096f92f40a"
+  secret: "${JWT_SECRET:5a530903feea688bc39f02fedc6417f24767928cf2b769bc267047e1d88b16e9780134dfbba5376d33eae7990ef656f591c9e5127b9b2ab2adff43096f92f40a}"
 
 ---
 # Profile LOCAL

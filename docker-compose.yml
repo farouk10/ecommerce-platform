@@ -1,23 +1,18 @@
-
+version: '3.8'
 
 services:
-  # ---------------------------------------------------------------------------
-  # INFRASTRUCTURE
-  # ---------------------------------------------------------------------------
-  
-  # POSTGRESQL (Shared Instance)
+  # POSTGRES DATABASE
   postgres:
-    image: postgres:15-alpine
+    image: postgres:15
     container_name: postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      # We will map a script to init multiple dbs
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - ecommerce-network
 
@@ -32,25 +27,26 @@ services:
 
   # KAFKA & ZOOKEEPER
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.1
+    image: confluentinc/cp-zookeeper:7.3.2
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
     networks:
       - ecommerce-network
 
   kafka:
-    image: confluentinc/cp-kafka:7.6.1
+    image: confluentinc/cp-kafka:7.3.2
     container_name: kafka
     depends_on:
       - zookeeper
     ports:
-      - "29092:29092"
+      - "9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      # Docker Internal: kafka:9092, Host External: localhost:29092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
@@ -58,49 +54,53 @@ services:
     networks:
       - ecommerce-network
 
-  # ---------------------------------------------------------------------------
-  # MICROSERVICES
-  # ---------------------------------------------------------------------------
-
-  api-gateway:
-    build: ./backend/api-gateway
-    container_name: api-gateway
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      AUTH_SERVICE_URL: http://auth-service:8081
-      PRODUCT_SERVICE_URL: http://product-service:8082
-      CART_SERVICE_URL: http://cart-service:8085
-      ORDER_SERVICE_URL: http://order-service:8083
-    depends_on:
-      - auth-service
-      - product-service
-      - cart-service
-      - order-service
-    networks:
-      - ecommerce-network
-
+  # SERVICES
   auth-service:
     build: ./backend/auth-service
     container_name: auth-service
+    ports:
+      - "8081:8081"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     depends_on:
       - postgres
-      - redis
       - kafka
+      - redis
     networks:
       - ecommerce-network
 
   product-service:
     build: ./backend/product-service
     container_name: product-service
+    ports:
+      - "8082:8082"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - postgres
-      - redis
+    networks:
+      - ecommerce-network
+
+  order-service:
+    build: ./backend/order-service
+    container_name: order-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - postgres
       - kafka
     networks:
       - ecommerce-network
@@ -108,41 +108,49 @@ services:
   cart-service:
     build: ./backend/cart-service
     container_name: cart-service
+    ports:
+      - "8084:8084"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - redis
-      - product-service
-    networks:
-      - ecommerce-network
-
-  order-service:
-    build: ./backend/order-service
-    container_name: order-service
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-    depends_on:
-      - postgres
-      - kafka
-      - product-service
-      - auth-service
     networks:
       - ecommerce-network
 
   notification-service:
     build: ./backend/notification-service
     container_name: notification-service
+    ports:
+      - "8086:8086"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
+      - SPRING_MAIL_PASSWORD=${MAIL_PASSWORD}
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     depends_on:
       - kafka
     networks:
       - ecommerce-network
 
-  # ---------------------------------------------------------------------------
-  # FRONTEND
-  # ---------------------------------------------------------------------------
-  
+  api-gateway:
+    build: ./backend/api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_CLOUD_GATEWAY_ROUTES_0_URI=http://auth-service:8081
+      - SPRING_CLOUD_GATEWAY_ROUTES_1_URI=http://product-service:8082
+      - SPRING_CLOUD_GATEWAY_ROUTES_2_URI=http://order-service:8083
+      - SPRING_CLOUD_GATEWAY_ROUTES_3_URI=http://cart-service:8084
+      - SPRING_CLOUD_GATEWAY_ROUTES_4_URI=http://admin-service:8085
+    depends_on:
+      - auth-service
+      - product-service
+      - order-service
+      - cart-service
+    networks:
+      - ecommerce-network
+
   frontend:
     build: ./frontend
     container_name: frontend
@@ -153,9 +161,9 @@ services:
     networks:
       - ecommerce-network
 
-volumes:
-  postgres_data:
-
 networks:
   ecommerce-network:
     driver: bridge
+
+volumes:
+  postgres_data:
