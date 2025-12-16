@@ -44,3 +44,47 @@ comprehensive_tests.sh
 test_results.log
 *_test.sh
 test-results/
+test*.sh
+test*.py
+test-*.sh
+dump_code.py
+*.test.js
+*.spec.js
+
+# Security - Certificates & Keys (CRITICAL!)
+*.pem
+*.key
+*.p12
+*.jks
+*.crt
+*.pfx
+keystore.*
+truststore.*
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql
+
+# Backup files
+*.bak
+*.backup
+*.old
+*~
+*.orig
+
+# Editor temp files
+*.swp
+*.swo
+
+# More environment patterns
+.env.*
+!.env.example
+
+# Coverage & reports
+coverage/
+.nyc_output/
+test-results/
+*.coveragerc
