@@ -1,0 +1,189 @@
+<div class="admin-container">
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <!-- Logo -->
+    <div class="sidebar-header">
+      <div class="logo-icon">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          class="w-6 h-6"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z"
+            clip-rule="evenodd"
+          />
+        </svg>
+      </div>
+      <span class="logo-text">Admin Panel</span>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+      <a
+        routerLink="/admin/dashboard"
+        routerLinkActive="active"
+        class="nav-link"
+      >
+        <span class="icon">📊</span>
+        <span>Tableau de bord</span>
+      </a>
+      <a routerLink="/admin/orders" routerLinkActive="active" class="nav-link">
+        <span class="icon">📦</span>
+        <span>Commandes</span>
+      </a>
+      <a
+        routerLink="/admin/products"
+        routerLinkActive="active"
+        class="nav-link"
+      >
+        <span class="icon">🛍️</span>
+        <span>Produits</span>
+      </a>
+      <a routerLink="/admin/promo" routerLinkActive="active" class="nav-link">
+        <span class="icon">🎟️</span>
+        <span>Promotions</span>
+      </a>
+      <a routerLink="/admin/profile" routerLinkActive="active" class="nav-link">
+        <span class="icon">👤</span>
+        <span>Mon Profil</span>
+      </a>
+    </nav>
+
+    <!-- User Profile & Logout -->
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="avatar">
+          <span>A</span>
+        </div>
+        <div class="user-info">
+          <p class="name">Administrateur</p>
+          <!-- ✅ CORRECTION ICI : Utilisation du code HTML &#64; au lieu du symbole @ -->
+          <p class="email">{{ (user$ | async)?.email }}</p>
+        </div>
+      </div>
+      <button (click)="logout()" class="logout-btn">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="w-5 h-5"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
+          />
+        </svg>
+        <span>Déconnexion</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="admin-content">
+    <!-- Top Header (Desktop & Mobile) -->
+    <header
+      class="bg-white border-b border-slate-200 h-16 px-6 flex items-center justify-between sticky top-0 z-10"
+    >
+      <div class="flex items-center gap-4">
+        <!-- Mobile Menu Button -->
+        <button
+          class="md:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-6 h-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+            />
+          </svg>
+        </button>
+
+        <!-- Global Search -->
+        <div class="hidden md:flex relative w-96">
+          <span
+            class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="w-5 h-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+              />
+            </svg>
+          </span>
+          <input
+            type="text"
+            placeholder="Rechercher (Ctrl+K)"
+            class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+          />
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <!-- Notifications -->
+        <button
+          class="p-2 text-slate-500 hover:bg-slate-100 rounded-full relative"
+        >
+          <span
+            class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"
+          ></span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-6 h-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+            />
+          </svg>
+        </button>
+
+        <!-- Divider -->
+        <div class="h-6 w-px bg-slate-200 mx-1"></div>
+
+        <!-- Profile Dropdown (Simplified) -->
+        <div
+          class="flex items-center gap-3 cursor-pointer p-1 hover:bg-slate-50 rounded-lg"
+        >
+          <div
+            class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center font-bold text-xs ring-2 ring-white shadow-sm"
+          >
+            AD
+          </div>
+          <div class="hidden md:block text-sm">
+            <p class="font-medium text-slate-700">Admin</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="content-wrapper">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+</div>

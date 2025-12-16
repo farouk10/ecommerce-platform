@@ -1,0 +1,15 @@
+<!-- LAYOUT PUBLIC (Header + Footer) -->
+<div *ngIf="isPublicLayout" class="flex flex-col min-h-screen">
+  <app-header></app-header>
+
+  <main class="flex-grow">
+    <router-outlet></router-outlet>
+  </main>
+
+  <app-footer></app-footer>
+</div>
+
+<!-- LAYOUT ADMIN (Juste le router-outlet, car AdminComponent gère sa propre sidebar/structure) -->
+<ng-container *ngIf="!isPublicLayout">
+  <router-outlet></router-outlet>
+</ng-container>

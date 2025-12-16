@@ -1,0 +1,842 @@
+=== ENVIRONMENT ===
+export const environment = {
+  production: false,
+  authServiceUrl: 'http://localhost:8081/api/auth',
+  productServiceUrl: 'http://localhost:8082/api/products',
+  orderServiceUrl: 'http://localhost:8083/api/orders'
+};
+
+=== APP CONFIG ===
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+
+import { routes } from './app.routes';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
+    provideHttpClient(
+      withInterceptors([authInterceptor])
+    )
+  ]
+};
+
+=== PROXY CONFIG ===
+{
+  "/api/auth": {
+    "target": "http://localhost:8081",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/products": {
+    "target": "http://localhost:8082",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/api/orders": {
+    "target": "http://localhost:8083",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}
+
+
+=== AUTH GUARD ===
+import { inject } from '@angular/core';
+import { Router, CanActivateFn } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+
+export const authGuard: CanActivateFn = (route, state) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  // Vérifier si l'utilisateur est authentifié
+  if (authService.isAuthenticated()) {
+    return true;
+  }
+
+  // Si non authentifié, rediriger vers la page de login
+  // Sauvegarder l'URL demandée pour rediriger après connexion
+  router.navigate(['/login'], {
+    queryParams: { returnUrl: state.url }
+  });
+
+  return false;
+};
+
+=== INTERCEPTORS ===
+--- src/app/core/interceptors/auth.interceptor.spec.ts ---
+import { TestBed } from '@angular/core/testing';
+import { HttpInterceptorFn } from '@angular/common/http';
+
+import { authInterceptor } from './auth.interceptor';
+
+describe('authInterceptor', () => {
+  const interceptor: HttpInterceptorFn = (req, next) => 
+    TestBed.runInInjectionContext(() => authInterceptor(req, next));
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+  });
+
+  it('should be created', () => {
+    expect(interceptor).toBeTruthy();
+  });
+});
+--- src/app/core/interceptors/auth.interceptor.ts ---
+import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { AuthService } from '../services/auth.service';
+import { catchError, throwError } from 'rxjs';
+import { Router } from '@angular/router';
+
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  // Récupérer le token JWT
+  const token = authService.getToken();
+
+  // Cloner la requête et ajouter le header Authorization si un token existe
+  let authReq = req;
+  if (token) {
+    authReq = req.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+  }
+
+  // Envoyer la requête et gérer les erreurs
+  return next(authReq).pipe(
+    catchError((error) => {
+      // Si erreur 401 (Non autorisé), déconnecter l'utilisateur
+      if (error.status === 401) {
+        authService.logout();
+        router.navigate(['/login']);
+      }
+
+      // Si erreur 403 (Accès interdit)
+      if (error.status === 403) {
+        console.error('Accès interdit à cette ressource');
+        router.navigate(['/']);
+      }
+
+      return throwError(() => error);
+    })
+  );
+};
+
+=== AUTH SERVICE (complet) ===
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+// Interfaces pour typer les données
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  roles: string[];
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthService {
+  private readonly AUTH_API = environment.authServiceUrl;
+  private readonly TOKEN_KEY = 'auth_token';
+  private readonly USER_KEY = 'current_user';
+
+  // BehaviorSubject pour gérer l'état de l'utilisateur connecté
+  private currentUserSubject: BehaviorSubject<User | null>;
+  public currentUser$: Observable<User | null>;
+
+  private isAuthenticatedSubject: BehaviorSubject<boolean>;
+  public isAuthenticated$: Observable<boolean>;
+
+  constructor(private http: HttpClient) {
+    // Initialiser avec les données du localStorage si disponibles
+    const storedUser = this.getUserFromStorage();
+    this.currentUserSubject = new BehaviorSubject<User | null>(storedUser);
+    this.currentUser$ = this.currentUserSubject.asObservable();
+
+    this.isAuthenticatedSubject = new BehaviorSubject<boolean>(!!storedUser);
+    this.isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
+  }
+
+  /**
+   * Connexion de l'utilisateur
+   */
+  login(credentials: LoginRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.AUTH_API}/login`, credentials)
+      .pipe(
+        tap(response => {
+          this.saveAuthData(response);
+        })
+      );
+  }
+
+  /**
+   * Inscription d'un nouvel utilisateur
+   */
+  register(userData: RegisterRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.AUTH_API}/register`, userData)
+      .pipe(
+        tap(response => {
+          this.saveAuthData(response);
+        })
+      );
+  }
+
+  /**
+   * Déconnexion de l'utilisateur
+   */
+  logout(): void {
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.USER_KEY);
+    this.currentUserSubject.next(null);
+    this.isAuthenticatedSubject.next(false);
+  }
+
+  /**
+   * Récupérer le token JWT stocké
+   */
+  getToken(): string | null {
+    return localStorage.getItem(this.TOKEN_KEY);
+  }
+
+  /**
+   * Récupérer l'utilisateur actuellement connecté
+   */
+  getCurrentUser(): User | null {
+    return this.currentUserSubject.value;
+  }
+
+  /**
+   * Vérifier si l'utilisateur est connecté
+   */
+  isAuthenticated(): boolean {
+    return !!this.getToken();
+  }
+
+  /**
+   * Sauvegarder les données d'authentification
+   */
+  private saveAuthData(response: AuthResponse): void {
+    localStorage.setItem(this.TOKEN_KEY, response.token);
+    localStorage.setItem(this.USER_KEY, JSON.stringify(response.user));
+    this.currentUserSubject.next(response.user);
+    this.isAuthenticatedSubject.next(true);
+  }
+
+  /**
+   * Récupérer l'utilisateur depuis le localStorage
+   */
+  private getUserFromStorage(): User | null {
+    const userJson = localStorage.getItem(this.USER_KEY);
+    if (userJson) {
+      try {
+        return JSON.parse(userJson);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Vérifier si l'utilisateur a un rôle spécifique
+   */
+  hasRole(role: string): boolean {
+    const user = this.getCurrentUser();
+    return user?.roles?.includes(role) || false;
+  }
+
+  /**
+   * Rafraîchir le profil utilisateur depuis le backend
+   */
+  refreshProfile(): Observable<User> {
+    return this.http.get<User>(`${this.AUTH_API}/profile`)
+      .pipe(
+        tap(user => {
+          localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+          this.currentUserSubject.next(user);
+        })
+      );
+  }
+}
+
+=== PRODUCT SERVICE ===
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+// Interface pour typer les produits
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  category: string;
+  stock: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Interface pour la pagination
+export interface ProductPage {
+  content: Product[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
+// Interface pour les filtres de recherche
+export interface ProductFilters {
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  search?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ProductService {
+  private readonly PRODUCT_API = environment.productServiceUrl;
+
+  constructor(private http: HttpClient) {}
+
+  /**
+   * Récupérer tous les produits avec pagination et filtres
+   */
+  getProducts(filters?: ProductFilters): Observable<ProductPage> {
+    let params = new HttpParams();
+
+    if (filters) {
+      if (filters.category) params = params.set('category', filters.category);
+      if (filters.minPrice) params = params.set('minPrice', filters.minPrice.toString());
+      if (filters.maxPrice) params = params.set('maxPrice', filters.maxPrice.toString());
+      if (filters.search) params = params.set('search', filters.search);
+      if (filters.page !== undefined) params = params.set('page', filters.page.toString());
+      if (filters.size) params = params.set('size', filters.size.toString());
+      if (filters.sort) params = params.set('sort', filters.sort);
+    }
+
+    return this.http.get<ProductPage>(this.PRODUCT_API, { params });
+  }
+
+  /**
+   * Récupérer un produit par son ID
+   */
+  getProductById(id: string): Observable<Product> {
+    return this.http.get<Product>(`${this.PRODUCT_API}/${id}`);
+  }
+
+  /**
+   * Rechercher des produits par nom
+   */
+  searchProducts(query: string): Observable<Product[]> {
+    const params = new HttpParams().set('search', query);
+    return this.http.get<Product[]>(`${this.PRODUCT_API}/search`, { params });
+  }
+
+  /**
+   * Récupérer les produits par catégorie
+   */
+  getProductsByCategory(category: string): Observable<Product[]> {
+    const params = new HttpParams().set('category', category);
+    return this.http.get<Product[]>(`${this.PRODUCT_API}/category`, { params });
+  }
+
+  /**
+   * Récupérer les catégories disponibles
+   */
+  getCategories(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.PRODUCT_API}/categories`);
+  }
+}
+
+=== ORDER SERVICE ===
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { Product } from './product.service';
+
+// Interface pour un item dans le panier
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
+// Interface pour une commande
+export interface Order {
+  id: string;
+  userId: string;
+  items: OrderItem[];
+  totalAmount: number;
+  status: OrderStatus;
+  shippingAddress: Address;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// Interface pour un item de commande
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+}
+
+// Interface pour l'adresse de livraison
+export interface Address {
+  fullName: string;
+  street: string;
+  city: string;
+  postalCode: string;
+  country: string;
+  phone: string;
+}
+
+// Statut de commande
+export enum OrderStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  SHIPPED = 'SHIPPED',
+  DELIVERED = 'DELIVERED',
+  CANCELLED = 'CANCELLED'
+}
+
+// Interface pour créer une commande
+export interface CreateOrderRequest {
+  items: { productId: string; quantity: number }[];
+  shippingAddress: Address;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class OrderService {
+  private readonly ORDER_API = environment.orderServiceUrl;
+  private readonly CART_KEY = 'shopping_cart';
+
+  // BehaviorSubject pour le panier
+  private cartItemsSubject: BehaviorSubject<CartItem[]>;
+  public cartItems$: Observable<CartItem[]>;
+
+  // BehaviorSubject pour le nombre total d'items
+  private cartCountSubject: BehaviorSubject<number>;
+  public cartCount$: Observable<number>;
+
+  constructor(private http: HttpClient) {
+    // Initialiser le panier depuis le localStorage
+    const savedCart = this.getCartFromStorage();
+    this.cartItemsSubject = new BehaviorSubject<CartItem[]>(savedCart);
+    this.cartItems$ = this.cartItemsSubject.asObservable();
+
+    this.cartCountSubject = new BehaviorSubject<number>(this.calculateTotalItems(savedCart));
+    this.cartCount$ = this.cartCountSubject.asObservable();
+  }
+
+  /**
+   * Récupérer toutes les commandes de l'utilisateur
+   */
+  getOrders(): Observable<Order[]> {
+    return this.http.get<Order[]>(this.ORDER_API);
+  }
+
+  /**
+   * Récupérer une commande par son ID
+   */
+  getOrderById(id: string): Observable<Order> {
+    return this.http.get<Order>(`${this.ORDER_API}/${id}`);
+  }
+
+  /**
+   * Créer une nouvelle commande
+   */
+  createOrder(orderData: CreateOrderRequest): Observable<Order> {
+    return this.http.post<Order>(this.ORDER_API, orderData).pipe(
+      tap(() => {
+        // Vider le panier après création de la commande
+        this.clearCart();
+      })
+    );
+  }
+
+  /**
+   * Annuler une commande
+   */
+  cancelOrder(id: string): Observable<Order> {
+    return this.http.put<Order>(`${this.ORDER_API}/${id}/cancel`, {});
+  }
+
+  // ============= GESTION DU PANIER LOCAL =============
+
+  /**
+   * Ajouter un produit au panier
+   */
+  addToCart(product: Product, quantity: number = 1): void {
+    const currentCart = this.cartItemsSubject.value;
+    const existingItemIndex = currentCart.findIndex(item => item.product.id === product.id);
+
+    if (existingItemIndex > -1) {
+      // Produit déjà dans le panier, augmenter la quantité
+      currentCart[existingItemIndex].quantity += quantity;
+    } else {
+      // Nouveau produit
+      currentCart.push({ product, quantity });
+    }
+
+    this.updateCart(currentCart);
+  }
+
+  /**
+   * Retirer un produit du panier
+   */
+  removeFromCart(productId: string): void {
+    const currentCart = this.cartItemsSubject.value;
+    const updatedCart = currentCart.filter(item => item.product.id !== productId);
+    this.updateCart(updatedCart);
+  }
+
+  /**
+   * Mettre à jour la quantité d'un produit
+   */
+  updateQuantity(productId: string, quantity: number): void {
+    const currentCart = this.cartItemsSubject.value;
+    const itemIndex = currentCart.findIndex(item => item.product.id === productId);
+
+    if (itemIndex > -1) {
+      if (quantity <= 0) {
+        // Si quantité <= 0, retirer du panier
+        this.removeFromCart(productId);
+      } else {
+        currentCart[itemIndex].quantity = quantity;
+        this.updateCart(currentCart);
+      }
+    }
+  }
+
+  /**
+   * Vider le panier
+   */
+  clearCart(): void {
+    this.updateCart([]);
+  }
+
+  /**
+   * Obtenir le panier actuel
+   */
+  getCart(): CartItem[] {
+    return this.cartItemsSubject.value;
+  }
+
+  /**
+   * Calculer le total du panier
+   */
+  getCartTotal(): number {
+    return this.cartItemsSubject.value.reduce(
+      (total, item) => total + (item.product.price * item.quantity),
+      0
+    );
+  }
+
+  /**
+   * Calculer le nombre total d'items
+   */
+  getCartCount(): number {
+    return this.calculateTotalItems(this.cartItemsSubject.value);
+  }
+
+  /**
+   * Mettre à jour le panier et notifier les observateurs
+   */
+  private updateCart(cart: CartItem[]): void {
+    this.cartItemsSubject.next(cart);
+    this.cartCountSubject.next(this.calculateTotalItems(cart));
+    this.saveCartToStorage(cart);
+  }
+
+  /**
+   * Calculer le nombre total d'items
+   */
+  private calculateTotalItems(cart: CartItem[]): number {
+    return cart.reduce((total, item) => total + item.quantity, 0);
+  }
+
+  /**
+   * Sauvegarder le panier dans le localStorage
+   */
+  private saveCartToStorage(cart: CartItem[]): void {
+    localStorage.setItem(this.CART_KEY, JSON.stringify(cart));
+  }
+
+  /**
+   * Récupérer le panier depuis le localStorage
+   */
+  private getCartFromStorage(): CartItem[] {
+    const cartJson = localStorage.getItem(this.CART_KEY);
+    if (cartJson) {
+      try {
+        return JSON.parse(cartJson);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  /**
+   * Formater le prix
+   */
+  formatPrice(price: number): string {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(price);
+  }
+
+  /**
+   * Obtenir le label du statut en français
+   */
+  getStatusLabel(status: OrderStatus): string {
+    const labels: Record<OrderStatus, string> = {
+      [OrderStatus.PENDING]: 'En attente',
+      [OrderStatus.CONFIRMED]: 'Confirmée',
+      [OrderStatus.SHIPPED]: 'Expédiée',
+      [OrderStatus.DELIVERED]: 'Livrée',
+      [OrderStatus.CANCELLED]: 'Annulée'
+    };
+    return labels[status] || status;
+  }
+
+  /**
+   * Obtenir la classe CSS du badge de statut
+   */
+  getStatusBadgeClass(status: OrderStatus): string {
+    const classes: Record<OrderStatus, string> = {
+      [OrderStatus.PENDING]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      [OrderStatus.CONFIRMED]: 'bg-blue-100 text-blue-800 border-blue-200',
+      [OrderStatus.SHIPPED]: 'bg-purple-100 text-purple-800 border-purple-200',
+      [OrderStatus.DELIVERED]: 'bg-green-100 text-green-800 border-green-200',
+      [OrderStatus.CANCELLED]: 'bg-red-100 text-red-800 border-red-200'
+    };
+    return classes[status] || '';
+  }
+}
+
+=== CHECKOUT COMPONENT ===
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { OrderService, CartItem, CreateOrderRequest } from '../../../core/services/order.service';
+
+@Component({
+  selector: 'app-checkout',
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: './checkout.component.html',
+  styleUrl: './checkout.component.css'
+})
+export class CheckoutComponent implements OnInit {
+  cartItems: CartItem[] = [];
+  shippingForm: FormGroup;
+  isSubmitting: boolean = false;
+  errorMessage: string = '';
+  
+  // Étapes du checkout
+  currentStep: 'cart' | 'shipping' | 'confirmation' = 'cart';
+
+  constructor(
+    private orderService: OrderService,
+    private fb: FormBuilder,
+    private router: Router
+  ) {
+    // Initialiser le formulaire d'adresse
+    this.shippingForm = this.fb.group({
+      fullName: ['', [Validators.required, Validators.minLength(3)]],
+      street: ['', Validators.required],
+      city: ['', Validators.required],
+      postalCode: ['', [Validators.required, Validators.pattern(/^\d{5}$/)]],
+      country: ['France', Validators.required],
+      phone: ['', [Validators.required, Validators.pattern(/^[\d\s\+\-\(\)]+$/)]]
+    });
+  }
+
+  ngOnInit(): void {
+    this.loadCart();
+  }
+
+  /**
+   * Charger le panier
+   */
+  loadCart(): void {
+    this.cartItems = this.orderService.getCart();
+  }
+
+  /**
+   * Calculer le sous-total
+   */
+  getSubtotal(): number {
+    return this.orderService.getCartTotal();
+  }
+
+  /**
+   * Calculer les frais de livraison
+   */
+  getShippingCost(): number {
+    const subtotal = this.getSubtotal();
+    return subtotal >= 50 ? 0 : 5.99;
+  }
+
+  /**
+   * Calculer le total
+   */
+  getTotal(): number {
+    return this.getSubtotal() + this.getShippingCost();
+  }
+
+  /**
+   * Formater le prix
+   */
+  formatPrice(price: number): string {
+    return this.orderService.formatPrice(price);
+  }
+
+  /**
+   * Augmenter la quantité
+   */
+  increaseQuantity(productId: string): void {
+    const item = this.cartItems.find(i => i.product.id === productId);
+    if (item && item.quantity < item.product.stock) {
+      this.orderService.updateQuantity(productId, item.quantity + 1);
+      this.loadCart();
+    }
+  }
+
+  /**
+   * Diminuer la quantité
+   */
+  decreaseQuantity(productId: string): void {
+    const item = this.cartItems.find(i => i.product.id === productId);
+    if (item && item.quantity > 1) {
+      this.orderService.updateQuantity(productId, item.quantity - 1);
+      this.loadCart();
+    }
+  }
+
+  /**
+   * Retirer un produit du panier
+   */
+  removeItem(productId: string): void {
+    if (confirm('Êtes-vous sûr de vouloir retirer ce produit ?')) {
+      this.orderService.removeFromCart(productId);
+      this.loadCart();
+    }
+  }
+
+  /**
+   * Continuer vers les informations de livraison
+   */
+  proceedToShipping(): void {
+    if (this.cartItems.length === 0) {
+      alert('Votre panier est vide');
+      return;
+    }
+    this.currentStep = 'shipping';
+  }
+
+  /**
+   * Retour au panier
+   */
+  backToCart(): void {
+    this.currentStep = 'cart';
+  }
+
+  /**
+   * Valider la commande
+   */
+  submitOrder(): void {
+    if (this.shippingForm.invalid) {
+      this.shippingForm.markAllAsTouched();
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.errorMessage = '';
+
+    const orderData: CreateOrderRequest = {
+      items: this.cartItems.map(item => ({
+        productId: item.product.id,
+        quantity: item.quantity
+      })),
+      shippingAddress: this.shippingForm.value
+    };
+
+    this.orderService.createOrder(orderData).subscribe({
+      next: (order) => {
+        console.log('Commande créée', order);
+        this.currentStep = 'confirmation';
+        this.isSubmitting = false;
+        
+        // Rediriger vers les commandes après 3 secondes
+        setTimeout(() => {
+          this.router.navigate(['/orders']);
+        }, 3000);
+      },
+      error: (error) => {
+        console.error('Erreur lors de la création de la commande', error);
+        this.isSubmitting = false;
+        this.errorMessage = 'Impossible de créer la commande. Veuillez réessayer.';
+        
+        // Mode démo : simuler le succès
+        alert('Mode démo : Commande simulée avec succès !');
+        this.orderService.clearCart();
+        this.router.navigate(['/orders']);
+      }
+    });
+  }
+
+  /**
+   * Getters pour les champs du formulaire
+   */
+  get fullName() { return this.shippingForm.get('fullName'); }
+  get street() { return this.shippingForm.get('street'); }
+  get city() { return this.shippingForm.get('city'); }
+  get postalCode() { return this.shippingForm.get('postalCode'); }
+  get country() { return this.shippingForm.get('country'); }
+  get phone() { return this.shippingForm.get('phone'); }
+}

@@ -1,0 +1,67 @@
+spring:
+  application:
+    name: cart-service
+  
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 60000
+
+server:
+  port: 8085
+
+# JWT Configuration
+jwt:
+  secret: "5a530903feea688bc39f02fedc6417f24767928cf2b769bc267047e1d88b16e9780134dfbba5376d33eae7990ef656f591c9e5127b9b2ab2adff43096f92f40a"
+  expiration: 900000
+
+# Rate Limiting
+rate-limiting:
+  enabled: true
+  requests-per-minute: 100
+  cache-ttl: 3600
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+
+# Logging
+logging:
+  level:
+    com.ecommerce.cart: DEBUG
+    org.springframework.data.redis: INFO
+
+# External Services URLs
+order-service:
+  url: http://localhost:8083
+
+product-service:
+  url: http://localhost:8082/api/products
+
+---
+---
+# Profile DOCKER
+spring:
+  config:
+    activate:
+      on-profile: docker
+  
+  data:
+    redis:
+      host: redis
+      port: 6379
+      timeout: 60000
+
+# External Services URLs (Docker DNS)
+order-service:
+  url: http://order-service:8083
+
+product-service:
+  url: http://product-service:8082/api/products

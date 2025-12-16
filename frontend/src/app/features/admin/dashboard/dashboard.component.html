@@ -1,0 +1,115 @@
+<div class="dashboard-container">
+  <!-- Header Section -->
+  <div class="dashboard-header">
+    <div>
+      <h1 class="page-title">Tableau de Bord</h1>
+      <p class="page-subtitle">
+        Aperçu de votre activité e-commerce en temps réel.
+      </p>
+    </div>
+    <div class="date-badge">
+      {{ today | date : "fullDate" }}
+    </div>
+  </div>
+
+  <!-- Loading Skeleton -->
+  <div *ngIf="loading" class="loading-grid">
+    <div *ngFor="let i of [1, 2, 3, 4]" class="skeleton-card"></div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div *ngIf="!loading" class="stats-grid">
+    <!-- CA -->
+    <div class="stat-card border-green">
+      <div class="stat-content">
+        <div>
+          <p class="stat-label">Chiffre d'affaires</p>
+          <h3 class="stat-value">
+            {{ stats.totalRevenue | currency : "MAD" : "symbol" : "1.0-0" }}
+          </h3>
+        </div>
+        <div class="stat-icon bg-green">💰</div>
+      </div>
+    </div>
+
+    <!-- Commandes -->
+    <div class="stat-card border-blue">
+      <div class="stat-content">
+        <div>
+          <p class="stat-label">Commandes Totales</p>
+          <h3 class="stat-value">{{ stats.totalOrders }}</h3>
+        </div>
+        <div class="stat-icon bg-blue">📦</div>
+      </div>
+    </div>
+
+    <!-- En Attente -->
+    <div class="stat-card border-orange">
+      <div class="stat-content">
+        <div>
+          <p class="stat-label">En Attente</p>
+          <h3 class="stat-value">{{ stats.pendingOrders }}</h3>
+        </div>
+        <div class="stat-icon bg-orange">⏳</div>
+      </div>
+    </div>
+
+    <!-- Produits -->
+    <div class="stat-card border-purple">
+      <div class="stat-content">
+        <div>
+          <p class="stat-label">Produits</p>
+          <h3 class="stat-value">{{ stats.totalProducts }}</h3>
+        </div>
+        <div class="stat-icon bg-purple">🛍️</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Grid -->
+  <div class="content-grid">
+    <!-- Quick Actions -->
+    <div class="card">
+      <h3 class="card-title">Actions Rapides</h3>
+      <div class="actions-grid">
+        <a routerLink="/admin/orders" class="action-btn hover-blue">
+          <div class="action-icon">📦</div>
+          <span class="action-text">Gérer les commandes</span>
+        </a>
+        <a routerLink="/admin/products" class="action-btn hover-purple">
+          <div class="action-icon">➕</div>
+          <span class="action-text">Ajouter un produit</span>
+        </a>
+        <a routerLink="/admin/promo" class="action-btn hover-green">
+          <div class="action-icon">🏷️</div>
+          <span class="action-text">Créer une promo</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Monthly Performance -->
+    <div class="card">
+      <h3 class="card-title">Performance du Mois</h3>
+      <ul class="performance-list">
+        <li class="performance-item">
+          <span class="perf-label">Nouvelles Commandes</span>
+          <span class="perf-value">{{ stats.ordersThisMonth }}</span>
+        </li>
+        <li class="performance-item">
+          <span class="perf-label">Revenus Générés</span>
+          <span class="perf-value text-green"
+            >+{{
+              stats.revenueThisMonth | currency : "MAD" : "symbol" : "1.0-0"
+            }}</span
+          >
+        </li>
+        <li class="performance-item">
+          <span class="perf-label">Nouveaux Clients</span>
+          <span class="perf-value text-blue"
+            >+{{ stats.newUsersThisMonth }}</span
+          >
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>

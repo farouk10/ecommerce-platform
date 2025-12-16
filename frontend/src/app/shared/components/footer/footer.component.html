@@ -1,0 +1,173 @@
+<footer
+  class="bg-slate-900 text-white pt-16 pb-8 mt-auto border-t border-slate-800"
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+      <!-- Brand -->
+      <div class="md:col-span-1">
+        <div class="flex items-center gap-2 mb-4">
+          <div
+            class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center"
+          >
+            <svg
+              class="w-5 h-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+              />
+            </svg>
+          </div>
+          <span class="text-xl font-bold tracking-tight text-white"
+            >E-Shop</span
+          >
+        </div>
+        <p class="text-slate-400 text-sm leading-relaxed mb-6">
+          Votre destination de confiance pour des produits de qualité. Livraison
+          rapide, paiement sécurisé et support client 24/7.
+        </p>
+        <div class="flex space-x-4">
+          <!-- Social Placeholders -->
+          <div
+            class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-primary-600 transition-colors cursor-pointer text-slate-400 hover:text-white"
+          >
+            <span class="font-bold text-xs">FB</span>
+          </div>
+          <div
+            class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-primary-600 transition-colors cursor-pointer text-slate-400 hover:text-white"
+          >
+            <span class="font-bold text-xs">TW</span>
+          </div>
+          <div
+            class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-primary-600 transition-colors cursor-pointer text-slate-400 hover:text-white"
+          >
+            <span class="font-bold text-xs">IG</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shopping -->
+      <div>
+        <h3
+          class="text-sm font-bold uppercase tracking-wider text-slate-100 mb-4"
+        >
+          Boutique
+        </h3>
+        <ul class="space-y-3 text-sm">
+          <li>
+            <a
+              routerLink="/products"
+              class="text-slate-400 hover:text-primary-400 transition-colors"
+              >Tous les produits</a
+            >
+          </li>
+          <li>
+            <a
+              href="#"
+              class="text-slate-400 hover:text-primary-400 transition-colors"
+              >Nouveautés</a
+            >
+          </li>
+          <li>
+            <a
+              href="#"
+              class="text-slate-400 hover:text-primary-400 transition-colors"
+              >Meilleures ventes</a
+            >
+          </li>
+          <li>
+            <a
+              href="#"
+              class="text-slate-400 hover:text-primary-400 transition-colors"
+              >Promotions</a
+            >
+          </li>
+        </ul>
+      </div>
+
+      <!-- Support -->
+      <div>
+        <h3
+          class="text-sm font-bold uppercase tracking-wider text-slate-100 mb-4"
+        >
+          Aide & Info
+        </h3>
+        <ul class="space-y-3 text-sm">
+          <li>
+            <a
+              routerLink="/profile"
+              class="text-slate-400 hover:text-primary-400 transition-colors"
+              >Mon Compte</a
+            >
+          </li>
+          <li>
+            <a
+              href="#"
+              class="text-slate-400 hover:text-primary-400 transition-colors"
+              >Suivre ma commande</a
+            >
+          </li>
+          <li>
+            <a
+              href="#"
+              class="text-slate-400 hover:text-primary-400 transition-colors"
+              >Livraison & Retours</a
+            >
+          </li>
+          <li>
+            <a
+              href="#"
+              class="text-slate-400 hover:text-primary-400 transition-colors"
+              >Contactez-nous</a
+            >
+          </li>
+        </ul>
+      </div>
+
+      <!-- Newsletter -->
+      <div>
+        <h3
+          class="text-sm font-bold uppercase tracking-wider text-slate-100 mb-4"
+        >
+          Restez informé
+        </h3>
+        <p class="text-slate-400 text-sm mb-4">
+          Inscrivez-vous pour recevoir nos offres exclusives.
+        </p>
+        <div class="flex gap-2">
+          <input
+            type="email"
+            placeholder="Votre email"
+            class="bg-slate-800 border-slate-700 text-white text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 placeholder-slate-500"
+          />
+          <button
+            class="bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg text-sm px-4 py-2 transition-colors"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div
+      class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4"
+    >
+      <p class="text-slate-500 text-sm">
+        © {{ currentYear }} E-Commerce Platform. Tous droits réservés.
+      </p>
+      <div class="flex gap-6 text-sm text-slate-500">
+        <a href="#" class="hover:text-slate-300 transition-colors"
+          >Confidentialité</a
+        >
+        <a href="#" class="hover:text-slate-300 transition-colors">Termes</a>
+        <a href="#" class="hover:text-slate-300 transition-colors">Cookies</a>
+      </div>
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,41 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: notification-service
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    # NE PAS configurer les deserializers ici car ils sont configurés en Java
+    # Les propriétés ci-dessous peuvent être complètement retirées
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:faruktalha47@gmail.com}
+    password: ${MAIL_PASSWORD:cselqksbesjxawwx}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+logging:
+  level:
+    org.springframework.kafka: DEBUG
+
+---
+# Profile DOCKER
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  kafka:
+    bootstrap-servers: kafka:9092
+
+auth:
+  service:
+    url: http://auth-service:8081

@@ -1,0 +1,106 @@
+<div
+  class="card group h-full flex flex-col relative cursor-pointer bg-white rounded-2xl overflow-hidden border border-slate-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+  [routerLink]="['/products', product.id]"
+>
+  <!-- Image Area -->
+  <div class="relative aspect-[4/5] bg-slate-50 p-6 overflow-hidden">
+    <img
+      [src]="
+        product.images?.[0] || 'https://via.placeholder.com/400x300?text=Produit'
+      "
+      [alt]="product.name"
+      class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 will-change-transform"
+    />
+
+    <!-- Badges -->
+    <div class="absolute top-3 left-3 flex flex-col gap-2">
+      <!-- Category Badge -->
+      <span
+        class="bg-white/90 backdrop-blur-sm text-slate-600 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-sm border border-slate-100/50 shadow-sm"
+      >
+        {{ product.categoryName || "Produit" }}
+      </span>
+    </div>
+
+    <!-- Stock Badge (only if low/out) -->
+    <div *ngIf="product.stockQuantity < 5" class="absolute top-3 right-3">
+      <span
+        [class]="getStockBadgeClass()"
+        class="px-2 py-1 rounded-full text-[10px] font-bold shadow-sm backdrop-blur-md"
+      >
+        {{ getStockBadge() }}
+      </span>
+    </div>
+
+    <!-- Floating Add to Cart Button (FAB) -->
+    <button
+      (click)="$event.stopPropagation(); addToCart()"
+      [disabled]="product.stockQuantity === 0 || isAddingToCart"
+      class="absolute bottom-4 right-4 h-10 w-10 rounded-full bg-slate-900 text-white shadow-lg flex items-center justify-center transform translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 hover:bg-primary-600 hover:scale-110 disabled:bg-slate-300 disabled:cursor-not-allowed z-10"
+      title="Ajouter au panier"
+    >
+      <!-- Icon: Cart Plus -->
+      <svg
+        *ngIf="!isAddingToCart"
+        class="w-5 h-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+        />
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 11h.01"
+        />
+      </svg>
+      <!-- Loading Spinner -->
+      <svg
+        *ngIf="isAddingToCart"
+        class="animate-spin h-5 w-5 text-white"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+        ></circle>
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        ></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Content Area -->
+  <div class="p-4 flex flex-col gap-1">
+    <!-- Title -->
+    <h3
+      class="text-[15px] font-medium text-slate-900 line-clamp-1 group-hover:text-primary-600 transition-colors"
+      title="{{ product.name }}"
+    >
+      {{ product.name }}
+    </h3>
+
+    <!-- Price -->
+    <div class="flex items-baseline gap-2">
+      <span class="text-sm font-bold text-slate-900">
+        {{ formatPrice(product.price) }}
+      </span>
+      <!-- Optional: Original Price placeholder if needed later -->
+    </div>
+  </div>
+</div>

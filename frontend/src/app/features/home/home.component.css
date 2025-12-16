@@ -1,0 +1,26 @@
+/* Animation fade-in pour le hero */
+@keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.8s ease-out;
+  }
+  
+  /* Effet hover sur les cartes catégories */
+  .group:hover {
+    cursor: pointer;
+  }
+  
+  /* Transitions douces */
+  * {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
