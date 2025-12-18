@@ -102,3 +102,12 @@ codebase_source.md
 *backup*.sql
 *export*.sql
 seed-data.sql
+
+# LaTeX Reports
+*.tex
+*.pdf
+*.log
+*.aux
+
+# Additional Audit Reports
+PORT_AUDIT_REPORT.md
