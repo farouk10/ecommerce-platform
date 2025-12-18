@@ -8,6 +8,12 @@ spring:
   cloud:
     gateway:
       routes:
+        - id: block-internal
+          uri: no://op
+          predicates:
+            - Path=/api/internal/**
+          filters:
+            - SetStatus=403
         - id: auth-service
           uri: ${AUTH_SERVICE_URL:http://localhost:8081}
           predicates:
@@ -24,10 +30,7 @@ spring:
           uri: ${CART_SERVICE_URL:http://localhost:8084}
           predicates:
             - Path=/api/cart/**
-        - id: admin-service
-          uri: ${ADMIN_SERVICE_URL:http://localhost:8085}
-          predicates:
-            - Path=/api/admin/**
+
 
 logging:
   level:
@@ -44,6 +47,12 @@ spring:
   cloud:
     gateway:
       routes:
+        - id: block-internal
+          uri: no://op
+          predicates:
+            - Path=/api/internal/**
+          filters:
+            - SetStatus=403
         - id: auth-service
           uri: ${AUTH_SERVICE_URL:http://auth-service:8081}
           predicates:
@@ -60,10 +69,7 @@ spring:
           uri: ${CART_SERVICE_URL:http://cart-service:8084}
           predicates:
             - Path=/api/cart/**
-        - id: admin-service
-          uri: ${ADMIN_SERVICE_URL:http://admin-service:8085}
-          predicates:
-            - Path=/api/admin/**
+
 
       globalcors:
         cors-configurations:

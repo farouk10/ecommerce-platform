@@ -46,7 +46,7 @@ logging:
     com.ecommerce.product: DEBUG
 
 jwt:
-  secret: "${JWT_SECRET:5a530903feea688bc39f02fedc6417f24767928cf2b769bc267047e1d88b16e9780134dfbba5376d33eae7990ef656f591c9e5127b9b2ab2adff43096f92f40a}"
+  secret: "${JWT_SECRET}"
 
 ---
 # Profile LOCAL (services sur localhost)
@@ -58,7 +58,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/product_db
     username: ecommerce
-    password: ecommerce123
+    password: ${DB_PASSWORD:ecommerce123}
 
   data:
     redis:
@@ -89,7 +89,7 @@ spring:
   datasource:
     url: jdbc:postgresql://postgres:5432/product_db
     username: ecommerce
-    password: ecommerce123
+    password: ${DB_PASSWORD}
 
   data:
     redis:

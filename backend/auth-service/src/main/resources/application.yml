@@ -58,7 +58,7 @@ spring:
 
 # JWT Configuration
 jwt:
-  secret: "${JWT_SECRET:5a530903feea688bc39f02fedc6417f24767928cf2b769bc267047e1d88b16e9780134dfbba5376d33eae7990ef656f591c9e5127b9b2ab2adff43096f92f40a}"
+  secret: "${JWT_SECRET}"
   expiration: 900000 # 15 minutes
   expiration: 900000  # 15 minutes
   refresh-expiration: 2592000000  # 30 days (was 7 days)
@@ -90,7 +90,7 @@ spring:
   datasource:
     url: jdbc:postgresql://postgres:5432/auth_db
     username: ecommerce
-    password: ecommerce123
+    password: ${DB_PASSWORD}
 
   data:
     redis:
