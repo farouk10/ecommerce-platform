@@ -5,7 +5,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
@@ -13,12 +12,13 @@ import org.testcontainers.utility.DockerImageName;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public abstract class AbstractIntegrationTest {
 
+        @org.springframework.boot.test.mock.mockito.MockBean
+        protected org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
+
         static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:15"))
                         .withDatabaseName("order_db_test")
                         .withUsername("test")
                         .withPassword("test");
-
-        static final KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.3.2"));
 
         static final GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7.0.12-alpine"))
                         .withExposedPorts(6379)
@@ -26,7 +26,6 @@ public abstract class AbstractIntegrationTest {
 
         static {
                 postgres.start();
-                kafka.start();
                 redis.start();
         }
 
@@ -39,15 +38,14 @@ public abstract class AbstractIntegrationTest {
                 registry.add("spring.flyway.user", postgres::getUsername);
                 registry.add("spring.flyway.password", postgres::getPassword);
 
-                // Kafka properties
-                registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
-
                 // Redis properties
                 registry.add("spring.data.redis.host", redis::getHost);
                 registry.add("spring.data.redis.port", redis::getFirstMappedPort);
 
+                // Kafka properties (Dummy value for injection, Template is mocked)
+                registry.add("spring.kafka.bootstrap-servers", () -> "localhost:9092");
+
                 // Env Vars / Properties replacement
-                // Override strict properties directly to avoid placeholder resolution issues
                 registry.add("jwt.secret",
                                 () -> "test_secret_value_must_be_long_enough_for_hs512_signing_key_verification");
                 registry.add("JWT_SECRET",

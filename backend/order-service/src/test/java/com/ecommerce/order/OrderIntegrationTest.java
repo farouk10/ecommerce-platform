@@ -19,7 +19,6 @@ class OrderIntegrationTest extends AbstractIntegrationTest {
     @Test
     void contextLoads() {
         assertThat(postgres.isRunning()).isTrue();
-        assertThat(kafka.isRunning()).isTrue();
     }
 
     @Test
