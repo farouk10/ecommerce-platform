@@ -1,0 +1,21 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+    gateway:
+      routes: [] # No routes needed for basic context load test
+
+server:
+  port: 8080
+
+eureka:
+  client:
+    enabled: false
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"

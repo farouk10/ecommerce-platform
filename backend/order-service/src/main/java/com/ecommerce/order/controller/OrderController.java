@@ -42,6 +42,13 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
+    @GetMapping("/user/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<OrderDto>> getOrdersByUserId(@PathVariable String userId) {
+        List<OrderDto> orders = orderService.getOrdersByUserId(userId);
+        return ResponseEntity.ok(orders);
+    }
+
     @GetMapping("/saved-addresses")
     public ResponseEntity<List<String>> getSavedAddresses(
             @RequestHeader("Authorization") String authHeader) {
@@ -82,16 +89,27 @@ public class OrderController {
         }
     }
 
+    @GetMapping("/stats")
+    public ResponseEntity<?> getAdminStats() {
+        return ResponseEntity.ok(orderService.getAdminStats());
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<OrderDto>> getAllOrders() {
+        return ResponseEntity.ok(orderService.getAllOrders());
+    }
+
     @PatchMapping("/{id}/status")
     public ResponseEntity<?> updateOrderStatus(
             @PathVariable Long id,
             @RequestParam String status) {
         try {
-            // ✅ CORRECTION TEMPORAIRE pour compilation immédiate
-            // Vous pourrez réactiver la logique complète une fois que
-            // OrderService.updateOrderStatus sera refait
-            log.info("Request to update order {} status to {}", id, status);
-            return ResponseEntity.ok(Map.of("message", "Status update pending implementation"));
+            com.ecommerce.order.enums.OrderStatus newStatus = com.ecommerce.order.enums.OrderStatus.valueOf(status);
+            OrderDto updatedOrder = orderService.updateOrderStatus(id, newStatus);
+            return ResponseEntity.ok(updatedOrder);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error",
+                    "Invalid status. Allowed: PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED"));
         } catch (RuntimeException e) {
             log.error("Error updating order status: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

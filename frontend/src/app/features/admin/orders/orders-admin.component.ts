@@ -26,7 +26,8 @@ export class OrdersAdminComponent implements OnInit {
 
   // CORRECTION : Utilisation de l'URL admin/orders et non orders/admin/orders
   // Assurez-vous que environment.orderServiceUrl pointe vers http://localhost:8083/api
-  private readonly ADMIN_ORDER_API = `${environment.adminServiceUrl}/orders`;
+  // Fix: Use orderServiceUrl (/api/orders)
+  private readonly ORDERS_API = `${environment.orderServiceUrl}`;
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -36,7 +37,8 @@ export class OrdersAdminComponent implements OnInit {
 
   loadOrders() {
     this.isLoading = true;
-    this.http.get<Order[]>(this.ADMIN_ORDER_API).subscribe({
+    // Fix: Call /all for admin view
+    this.http.get<Order[]>(`${this.ORDERS_API}/all`).subscribe({
       next: (orders) => {
         // Sort by date desc (newest first) by default
         this.orders = orders.sort(
@@ -79,9 +81,12 @@ export class OrdersAdminComponent implements OnInit {
     if (!confirm(`Confirmer le changement de statut vers "${newStatus}" ?`))
       return;
 
-    // CORRECTION : Appel vers /api/admin/orders/{id}/status
+    // Fix: Use PATCH and correct URL /api/orders/{id}/status
+    // Note: Backend expects @RequestParam status, not body? Let's check Controller.
+    // Controller: @RequestParam String status.
+    // So we must pass query param, NOT body.
     this.http
-      .put(`${this.ADMIN_ORDER_API}/${orderId}/status`, { status: newStatus })
+      .patch(`${this.ORDERS_API}/${orderId}/status?status=${newStatus}`, {})
       .subscribe({
         next: () => {
           alert('✅ Statut mis à jour !');

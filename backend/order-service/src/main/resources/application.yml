@@ -1,105 +1,13 @@
-server:
-  port: 8083
-  compression:
-    enabled: true
-    mime-types: application/json,application/xml,text/html,text/xml,text/plain
-    min-response-size: 1024
-
 spring:
   application:
     name: order-service
+  config:
+    import: "optional:configserver:http://localhost:8888/"
 
-  profiles:
-    active: local
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
-    clean-on-validation-error: true
-    clean-disabled: false
-    locations: classpath:db/migration
-
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ecommerce}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+# Minimal local config, remainder in Config Server
+server:
+  port: 8083
 
 logging:
   level:
     com.ecommerce.order: DEBUG
-
-jwt:
-  secret: "${JWT_SECRET}"
-
----
-# Profile LOCAL
-spring:
-  config:
-    activate:
-      on-profile: local
-
-  datasource:
-    url: jdbc:postgresql://localhost:5434/order_db
-    username: ecommerce
-    password: ${DB_PASSWORD:ecommerce123}
-
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-
-  # Rate Limiting Configuration
-  # Rate Limiting Configuration
-  rate-limiting:
-    enabled: true
-    requests-per-minute: 100
-    cache-ttl: 3600
-
-services:
-  product-url: http://localhost:8082/api/products
-  auth-url: http://localhost:8081/api
-
-
----
-# Profile DOCKER
-spring:
-  config:
-    activate:
-      on-profile: docker
-
-  datasource:
-    url: jdbc:postgresql://postgres:5432/order_db
-    username: ecommerce
-    password: ${DB_PASSWORD}
-
-  kafka:
-    bootstrap-servers: kafka:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-
-  # Rate Limiting Configuration
-  rate-limiting:
-    enabled: true
-    requests-per-minute: 100
-    cache-ttl: 3600
-
-  data:
-    redis:
-      host: redis
-      port: 6379
-
-services:
-  product-url: http://product-service:8082/api/products
-  auth-url: http://auth-service:8081/api
-

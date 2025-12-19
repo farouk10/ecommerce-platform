@@ -65,9 +65,15 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
+        log.info("LOGIN ATTEMPT: User={} Enabled={} ID={}", user.getEmail(), user.isEnabled(), user.getId());
+
         // Vérifier le mot de passe
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid email or password");
+        }
+
+        if (!user.isEnabled()) {
+            throw new RuntimeException("Account is disabled");
         }
 
         log.info("User logged in: {}", user.getEmail());
@@ -264,6 +270,8 @@ public class AuthService {
                 .address(user.getAddress())
                 .avatarUrl(user.getAvatarUrl())
                 .bio(user.getBio())
+                .enabled(user.isEnabled())
+                .createdAt(user.getCreatedAt().toString())
                 .build();
     }
 

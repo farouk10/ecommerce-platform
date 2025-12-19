@@ -54,9 +54,7 @@ public class ProductController {
             @RequestParam(required = false) java.math.BigDecimal minPrice,
             @RequestParam(required = false) java.math.BigDecimal maxPrice,
             @RequestParam(required = false) String search,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size);
+            @org.springframework.data.web.PageableDefault(size = 20) Pageable pageable) {
         Page<ProductDto> products = productService.getAllProducts(categoryId, minPrice, maxPrice, search, pageable);
         return ResponseEntity.ok(products);
     }

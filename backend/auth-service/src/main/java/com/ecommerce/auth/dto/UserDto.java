@@ -21,4 +21,6 @@ public class UserDto {
     private String address;
     private String avatarUrl;
     private String bio;
+    private boolean enabled;
+    private String createdAt;
 }

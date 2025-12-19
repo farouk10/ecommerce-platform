@@ -8,5 +8,5 @@ export const environment = {
 
   // ✅ Unified API Gateway URL
   orderServiceUrl: '/api/orders',
-  adminServiceUrl: '/api/admin',
+  // adminServiceUrl deprecated - logic decentralized
 };

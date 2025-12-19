@@ -1,0 +1,45 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+    compatibility-verifier:
+      enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: "mock-google-client-id"
+            client-secret: "mock-google-client-secret"
+            scope: profile, email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+          github:
+            client-id: "mock-github-client-id"
+            client-secret: "mock-github-client-secret"
+            scope: user:email
+
+jwt:
+  secret: "mySuperSecretKeyForIntegrationTesting1234567890"
+  expiration: 900000
+  refresh-expiration: 2592000000
+
+rate-limiting:
+  enabled: false
+  requests-per-minute: 100
+  cache-ttl: 3600
+
+logging:
+  level:
+    com.ecommerce.auth: DEBUG

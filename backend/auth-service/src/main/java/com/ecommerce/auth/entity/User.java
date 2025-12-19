@@ -45,9 +45,14 @@ public class User {
     @Column(length = 500)
     private String bio;
 
+    @Builder.Default
+    @Column(columnDefinition = "boolean default true")
+    private boolean enabled = true;
+
     @Enumerated(EnumType.STRING)
     private Role role = Role.CUSTOMER;
 
+    @Builder.Default
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 

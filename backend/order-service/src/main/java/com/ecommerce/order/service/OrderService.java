@@ -25,6 +25,13 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final KafkaTemplate<String, OrderEvent> kafkaTemplate;
+    private final org.springframework.web.client.RestTemplate restTemplate;
+
+    @org.springframework.beans.factory.annotation.Value("${services.product-url}")
+    private String productServiceUrl;
+
+    @org.springframework.beans.factory.annotation.Value("${services.auth-url}")
+    private String authServiceUrl;
 
     @Transactional(readOnly = true)
     public List<OrderDto> getOrdersByUserId(String userId) {
@@ -131,6 +138,74 @@ public class OrderService {
     // Méthode utilitaire convertToDto rendue publique ou utilisée en interne
     public OrderDto convertToDto(Order order) {
         return OrderDto.fromEntity(order);
+    }
+
+    // --- Admin Methods ---
+
+    public AdminStatsDto getAdminStats() {
+        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0);
+
+        int totalProducts = 0;
+        try {
+            Long count = restTemplate.getForObject(productServiceUrl + "/count", Long.class);
+            if (count != null) {
+                totalProducts = count.intValue();
+            }
+        } catch (Exception e) {
+            log.error("Error fetching product count: {}", e.getMessage());
+        }
+
+        return AdminStatsDto.builder()
+                .totalOrders((int) orderRepository.count())
+                .totalRevenue(orderRepository.sumTotalRevenue())
+                .pendingOrders((int) orderRepository.countByStatus(OrderStatus.PENDING))
+                .confirmedOrders((int) orderRepository.countByStatus(OrderStatus.CONFIRMED))
+                .processingOrders((int) orderRepository.countByStatus(OrderStatus.PROCESSING))
+                .shippedOrders((int) orderRepository.countByStatus(OrderStatus.SHIPPED))
+                .deliveredOrders((int) orderRepository.countByStatus(OrderStatus.DELIVERED))
+                .ordersThisMonth((int) orderRepository.countOrdersSince(startOfMonth))
+                .revenueThisMonth(orderRepository.sumRevenueSince(startOfMonth))
+                .totalProducts(totalProducts)
+                .totalUsers(0)
+                .build();
+    }
+
+    public List<OrderDto> getAllOrders() {
+        List<Order> orders = orderRepository.findAll(org.springframework.data.domain.Sort
+                .by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        return orders.stream().map(order -> {
+            OrderDto dto = convertToDto(order);
+            enrichWithUserInfo(dto);
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public OrderDto updateOrderStatus(Long id, OrderStatus status) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        order.setStatus(status);
+        Order saved = orderRepository.save(order);
+        // Maybe publish event?
+        publishOrderEvent(saved, "OrderStatusUpdated");
+        return convertToDto(saved);
+    }
+
+    private void enrichWithUserInfo(OrderDto dto) {
+        if (dto.getUserId() != null) {
+            try {
+                // Fetch user from Auth Service
+                java.util.Map user = restTemplate.getForObject(authServiceUrl + "/internal/users/" + dto.getUserId(),
+                        java.util.Map.class);
+                if (user != null) {
+                    dto.setClientName((String) user.get("name"));
+                    dto.setClientEmail((String) user.get("email"));
+                    dto.setClientPhone((String) user.get("phoneNumber"));
+                }
+            } catch (Exception e) {
+                log.error("Error fetching user info for order {}: {}", dto.getId(), e.getMessage());
+            }
+        }
     }
 
     private OrderItemDto convertItemToDto(OrderItem item) {

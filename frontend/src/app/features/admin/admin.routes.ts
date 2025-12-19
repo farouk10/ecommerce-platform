@@ -56,6 +56,14 @@ export const ADMIN_ROUTES: Routes = [
         title: 'Mon Profil Admin',
       },
       {
+        path: 'users',
+        loadComponent: () =>
+          import('./users/users-admin.component').then(
+            (m) => m.UsersAdminComponent
+          ),
+        title: 'Admin - Utilisateurs',
+      },
+      {
         path: '**',
         redirectTo: 'dashboard',
       },

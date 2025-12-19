@@ -44,7 +44,7 @@ export class DashboardComponent implements OnInit {
 
   loading = true;
   today = new Date();
-  private readonly STATS_API = `${environment.adminServiceUrl}/stats`;
+  private readonly STATS_API = `${environment.orderServiceUrl}/stats`;
 
   constructor(private http: HttpClient) {}
 

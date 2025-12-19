@@ -14,7 +14,7 @@ import {
 })
 export class OrderService {
   private readonly ORDER_API = environment.orderServiceUrl;
-  private readonly ADMIN_API = `${environment.adminServiceUrl}/orders`;
+  private readonly ADMIN_API = `${environment.orderServiceUrl}`;
 
   constructor(private http: HttpClient) {}
 
@@ -74,5 +74,12 @@ export class OrderService {
    */
   getSavedAddresses(): Observable<string[]> {
     return this.http.get<string[]>(`${this.ORDER_API}/saved-addresses`);
+  }
+
+  /**
+   * Récupérer les commandes d'un utilisateur spécifique (Admin)
+   */
+  getOrdersByUserId(userId: string): Observable<Order[]> {
+    return this.http.get<Order[]>(`${this.ADMIN_API}/user/${userId}`);
   }
 }

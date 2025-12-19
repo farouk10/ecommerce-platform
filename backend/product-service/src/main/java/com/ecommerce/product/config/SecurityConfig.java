@@ -41,11 +41,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/products/batch").permitAll() // Allow batch retrieval
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/products/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/categories/**").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/api/**").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/api/**").authenticated()
-                        .requestMatchers(HttpMethod.PATCH, "/api/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

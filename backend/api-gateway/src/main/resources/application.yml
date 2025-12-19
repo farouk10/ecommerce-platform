@@ -1,80 +1,55 @@
-server:
-  port: 8080
-
 spring:
   application:
     name: api-gateway
-  
   cloud:
     gateway:
       routes:
-        - id: block-internal
-          uri: no://op
-          predicates:
-            - Path=/api/internal/**
-          filters:
-            - SetStatus=403
-        - id: auth-service
-          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
-          predicates:
-            - Path=/api/auth/**
         - id: product-service
-          uri: ${PRODUCT_SERVICE_URL:http://localhost:8082}
+          uri: http://product-service:8082
           predicates:
-            - Path=/api/products/**, /api/categories/**
+            - Path=/api/products/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: productServiceCircuitBreaker
+                fallbackUri: forward:/fallback/products
+        - id: category-service-route
+          uri: http://product-service:8082
+          predicates:
+            - Path=/api/categories/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: productServiceCircuitBreaker
+                fallbackUri: forward:/fallback/products
         - id: order-service
-          uri: ${ORDER_SERVICE_URL:http://localhost:8083}
+          uri: http://order-service:8083
           predicates:
             - Path=/api/orders/**
-        - id: cart-service
-          uri: ${CART_SERVICE_URL:http://localhost:8084}
-          predicates:
-            - Path=/api/cart/**
-
-
-logging:
-  level:
-    org.springframework.cloud.gateway: DEBUG
-    com.ecommerce.gateway: DEBUG
-
----
-# Profile DOCKER
-spring:
-  config:
-    activate:
-      on-profile: docker
-
-  cloud:
-    gateway:
-      routes:
-        - id: block-internal
-          uri: no://op
-          predicates:
-            - Path=/api/internal/**
           filters:
-            - SetStatus=403
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/orders
         - id: auth-service
-          uri: ${AUTH_SERVICE_URL:http://auth-service:8081}
+          uri: http://auth-service:8081
           predicates:
-            - Path=/api/auth/**
-        - id: product-service
-          uri: ${PRODUCT_SERVICE_URL:http://product-service:8082}
-          predicates:
-            - Path=/api/products/**, /api/categories/**
-        - id: order-service
-          uri: ${ORDER_SERVICE_URL:http://order-service:8083}
-          predicates:
-            - Path=/api/orders/**
+            - Path=/api/auth/**, /login/oauth2/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: authServiceCircuitBreaker
+                fallbackUri: forward:/fallback/auth
         - id: cart-service
-          uri: ${CART_SERVICE_URL:http://cart-service:8084}
+          uri: http://cart-service:8084
           predicates:
             - Path=/api/cart/**
-
-
       globalcors:
+        add-to-simple-url-handler-mapping: true
         cors-configurations:
           '[/**]':
-            allowedOrigins: "http://localhost"
+            allowedOriginPatterns:
+              - "*"
             allowedMethods:
               - GET
               - POST
@@ -83,15 +58,28 @@ spring:
               - OPTIONS
             allowedHeaders: "*"
             allowCredentials: true
+            maxAge: 3600
 
 management:
   endpoints:
     web:
       exposure:
-        include: "health,info,gateway"
-      base-path: /actuator
-  endpoint:
-    gateway:
-      enabled: true
-    health:
-      show-details: always
+        include: "*"
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 5s
+        cancelRunningFuture: true

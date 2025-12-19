@@ -19,13 +19,13 @@ public class JwtUtil {
 
     private final SecretKey key;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.expiration:900000}")
     private Long expiration;
 
-    @Value("${jwt.refresh-expiration}")
+    @Value("${jwt.refresh-expiration:2592000000}")
     private Long refreshExpiration;
 
-    public JwtUtil(@Value("${jwt.secret}") String secret) {
+    public JwtUtil(@Value("${jwt.secret:mySuperSecretKeyForIntegrationTesting1234567890}") String secret) {
         log.info("🔹 Auth Service Secret: length={}, content='{}...{}'", secret.length(), secret.substring(0, 5),
                 secret.substring(secret.length() - 5));
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));

@@ -20,9 +20,9 @@ public class FileStorageService {
 
     private final Path fileStorageLocation;
 
-    public FileStorageService() {
-        // Use /app/uploads to match Docker volume mount
-        this.fileStorageLocation = Paths.get("/app/uploads").toAbsolutePath().normalize();
+    public FileStorageService(
+            @org.springframework.beans.factory.annotation.Value("${app.file-storage.location:/app/uploads}") String uploadDir) {
+        this.fileStorageLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
         System.out.println("🗂️  File storage location: " + this.fileStorageLocation);
     }
 
