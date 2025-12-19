@@ -19,7 +19,8 @@ public abstract class AbstractIntegrationTest {
             .withPassword("test");
 
     static final KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.4.0"))
-            .withStartupTimeout(java.time.Duration.ofMinutes(3));
+            .withKraft()
+            .withStartupTimeout(java.time.Duration.ofMinutes(5));
 
     static final GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7.0.12-alpine"))
             .withExposedPorts(6379)
