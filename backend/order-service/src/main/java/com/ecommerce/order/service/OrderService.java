@@ -49,7 +49,10 @@ public class OrderService {
     public OrderDto getOrderById(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
-        return convertToDto(order);
+        OrderDto dto = convertToDto(order);
+        enrichWithUserInfo(dto);
+        enrichWithProductInfo(dto);
+        return dto;
     }
 
     @Transactional
@@ -208,7 +211,86 @@ public class OrderService {
         }
     }
 
+    private void enrichWithProductInfo(OrderDto dto) {
+        if (dto.getItems() == null || dto.getItems().isEmpty())
+            return;
+
+        try {
+            List<Long> productIds = dto.getItems().stream()
+                    .map(OrderItemDto::getProductId)
+                    .collect(Collectors.toList());
+
+            // Call Product Service Batch API
+            // Assuming ProductDto has imageUrl field and id
+            // POST /api/products/batch
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            org.springframework.http.HttpEntity<List<Long>> request = new org.springframework.http.HttpEntity<>(
+                    productIds, headers);
+
+            List<java.util.Map> products = restTemplate.postForObject(productServiceUrl + "/batch", request,
+                    List.class);
+
+            if (products != null) {
+                // Map product ID to Image URL
+                java.util.Map<Long, String> imageMap = new java.util.HashMap<>();
+                for (Object p : products) {
+                    java.util.Map productMap = (java.util.Map) p;
+                    Long id = ((Number) productMap.get("id")).longValue();
+                    String url = (String) productMap.get("imageUrl");
+                    imageMap.put(id, url);
+                }
+
+                // Update Items
+                dto.getItems().forEach(item -> {
+                    if (imageMap.containsKey(item.getProductId())) {
+                        item.setImageUrl(imageMap.get(item.getProductId()));
+                    }
+                });
+            }
+
+        } catch (Exception e) {
+            log.error("Error fetching product info for order {}: {}", dto.getId(), e.getMessage());
+        }
+    }
+
     private OrderItemDto convertItemToDto(OrderItem item) {
         return OrderItemDto.fromEntity(item);
+    }
+
+    // --- New Stats Methods ---
+
+    @Transactional(readOnly = true)
+    public List<TopProductDto> getTopSellingProducts(int limit) {
+        return orderRepository.findTopSellingProducts(org.springframework.data.domain.PageRequest.of(0, limit));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Object> getRevenueStats(String type, LocalDateTime startDate, LocalDateTime endDate) {
+        if ("DAILY".equalsIgnoreCase(type)) {
+            if (endDate == null)
+                endDate = LocalDateTime.now();
+            if (startDate == null)
+                startDate = endDate.minusDays(7);
+
+            return new java.util.ArrayList<>(orderRepository.findDailyRevenueBetween(startDate, endDate));
+        } else {
+            // Default MONTHLY
+            if (startDate == null)
+                startDate = LocalDateTime.now().minusMonths(12).withDayOfMonth(1);
+            return new java.util.ArrayList<>(orderRepository.findMonthlyRevenueSince(startDate));
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderDto> getRecentOrders(int limit) {
+        org.springframework.data.domain.Page<Order> page = orderRepository.findAll(
+                org.springframework.data.domain.PageRequest.of(0, limit,
+                        org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        return page.getContent().stream().map(order -> {
+            OrderDto dto = convertToDto(order);
+            enrichWithUserInfo(dto);
+            return dto;
+        }).collect(Collectors.toList());
     }
 }

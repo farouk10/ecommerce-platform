@@ -47,6 +47,15 @@ export class OrderService {
   }
 
   /**
+   * Mettre à jour le statut (Admin)
+   */
+  updateStatus(id: number, status: OrderStatus): Observable<Order> {
+    return this.http.patch<Order>(`${this.ADMIN_API}/${id}/status`, null, {
+      params: { status },
+    });
+  }
+
+  /**
    * Formater le prix
    */
   formatPrice(price: number): string {
@@ -81,5 +90,32 @@ export class OrderService {
    */
   getOrdersByUserId(userId: string): Observable<Order[]> {
     return this.http.get<Order[]>(`${this.ADMIN_API}/user/${userId}`);
+  }
+
+  // --- Dashboard Stats ---
+
+  getRecentOrders(limit: number = 5): Observable<Order[]> {
+    return this.http.get<Order[]>(`${this.ADMIN_API}/recent?limit=${limit}`);
+  }
+
+  getTopSellingProducts(limit: number = 5): Observable<any[]> {
+    return this.http.get<any[]>(
+      `${this.ADMIN_API}/stats/top-products?limit=${limit}`
+    );
+  }
+
+  getRevenueStats(
+    type: 'DAILY' | 'MONTHLY' = 'MONTHLY',
+    startDate?: string,
+    endDate?: string
+  ): Observable<any[]> {
+    let params = `type=${type}`;
+    if (startDate) params += `&startDate=${startDate}`;
+    if (endDate) params += `&endDate=${endDate}`;
+    return this.http.get<any[]>(`${this.ADMIN_API}/stats/revenue?${params}`);
+  }
+
+  getAdminStats(): Observable<any> {
+    return this.http.get<any>(`${this.ADMIN_API}/stats`);
   }
 }

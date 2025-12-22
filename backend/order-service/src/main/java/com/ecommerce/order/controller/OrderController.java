@@ -129,4 +129,26 @@ public class OrderController {
                     .body(Map.of("error", e.getMessage()));
         }
     }
+
+    // --- Dashboard Specific Endpoints ---
+
+    @GetMapping("/recent")
+    public ResponseEntity<List<OrderDto>> getRecentOrders(
+            @RequestParam(defaultValue = "5") int limit) {
+        return ResponseEntity.ok(orderService.getRecentOrders(limit));
+    }
+
+    @GetMapping("/stats/top-products")
+    public ResponseEntity<List<com.ecommerce.order.dto.TopProductDto>> getTopSellingProducts(
+            @RequestParam(defaultValue = "5") int limit) {
+        return ResponseEntity.ok(orderService.getTopSellingProducts(limit));
+    }
+
+    @GetMapping("/stats/revenue")
+    public ResponseEntity<List<Object>> getRevenueStats(
+            @RequestParam(defaultValue = "MONTHLY") String type,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime endDate) {
+        return ResponseEntity.ok(orderService.getRevenueStats(type, startDate, endDate));
+    }
 }

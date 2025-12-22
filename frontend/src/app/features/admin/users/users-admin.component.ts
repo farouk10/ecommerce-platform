@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { FormsModule } from '@angular/forms';
 import { OrderService } from '../../../core/services/order.service';
@@ -52,11 +52,28 @@ export class UsersAdminComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private orderService: OrderService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute // Injected
   ) {}
 
   ngOnInit() {
     this.loadUsers();
+  }
+
+  // Handle deep linking after users are loaded
+  private checkDeepLink() {
+    const userId = this.route.snapshot.queryParams['userId'];
+    if (userId) {
+      const user = this.users.find((u) => u.id === userId);
+      if (user) {
+        this.selectUser(user);
+        // Clear query param to avoid reopening on refresh (optional, but good UX)
+        this.router.navigate([], {
+          queryParams: { userId: null },
+          queryParamsHandling: 'merge',
+        });
+      }
+    }
   }
 
   viewOrderDetails(orderId: string) {
@@ -101,6 +118,7 @@ export class UsersAdminComponent implements OnInit {
         this.users = data;
         this.applyFiltersAndSort();
         this.isLoading = false;
+        this.checkDeepLink(); // Trigger deep link check
       },
       error: (err) => {
         console.error('Error loading users', err);

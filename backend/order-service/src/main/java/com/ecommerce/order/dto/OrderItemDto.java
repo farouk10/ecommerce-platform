@@ -18,6 +18,7 @@ public class OrderItemDto {
     private String productName;
     private Integer quantity;
     private BigDecimal price;
+    private String imageUrl; // Added field for product image
 
     // Méthode helper pour convertir depuis l'entité
     public static OrderItemDto fromEntity(OrderItem item) {

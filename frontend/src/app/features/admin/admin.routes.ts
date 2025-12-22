@@ -24,6 +24,22 @@ export const ADMIN_ROUTES: Routes = [
         title: 'Admin - Produits',
       },
       {
+        path: 'products/new',
+        loadComponent: () =>
+          import(
+            './products/product-detail/product-detail-admin.component'
+          ).then((m) => m.ProductDetailAdminComponent),
+        title: 'Admin - Nouveau Produit',
+      },
+      {
+        path: 'products/:id',
+        loadComponent: () =>
+          import(
+            './products/product-detail/product-detail-admin.component'
+          ).then((m) => m.ProductDetailAdminComponent),
+        title: 'Admin - Édition Produit',
+      },
+      {
         path: 'orders',
         loadComponent: () =>
           import('./orders/orders-admin.component').then(

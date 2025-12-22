@@ -35,6 +35,10 @@ public class Cart implements Serializable {
     // Promo Code fields
     private String promoCode;
     private BigDecimal discount;
+    // Added fields for recalculation
+    private BigDecimal promoDiscountPercent;
+    private BigDecimal promoMinAmount;
+    private BigDecimal promoMaxDiscount;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -77,7 +81,26 @@ public class Cart implements Serializable {
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
 
-        // Recalculer avec promo code si présent
+        // Recalculate discount if promo details exist
+        if (promoCode != null && promoDiscountPercent != null) {
+            // Verify minimum amount
+            if (promoMinAmount != null && subtotal.compareTo(promoMinAmount) < 0) {
+                // Requirement no longer met, remove discount but keep code?
+                // Or just set discount to 0. Let's set to 0 but maybe warn?
+                // For now, simpler implies 0 discount.
+                this.discount = BigDecimal.ZERO;
+            } else {
+                BigDecimal calculatedDiscount = subtotal
+                        .multiply(promoDiscountPercent)
+                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+                if (promoMaxDiscount != null && calculatedDiscount.compareTo(promoMaxDiscount) > 0) {
+                    calculatedDiscount = promoMaxDiscount;
+                }
+                this.discount = calculatedDiscount;
+            }
+        }
+
         if (discount != null && discount.compareTo(BigDecimal.ZERO) > 0) {
             this.totalAmount = subtotal.subtract(discount).setScale(2, RoundingMode.HALF_UP);
         } else {
@@ -93,29 +116,23 @@ public class Cart implements Serializable {
         // Vérifier montant minimum
         if (promo.getMinAmount() != null && subtotal.compareTo(promo.getMinAmount()) < 0) {
             throw new IllegalArgumentException(
-                    String.format("Minimum amount required: %.2f", promo.getMinAmount())
-            );
+                    String.format("Minimum amount required: %.2f", promo.getMinAmount()));
         }
 
         this.promoCode = promo.getCode();
+        this.promoDiscountPercent = promo.getDiscountPercent();
+        this.promoMinAmount = promo.getMinAmount();
+        this.promoMaxDiscount = promo.getMaxDiscount();
 
-        // Calculer réduction
-        BigDecimal calculatedDiscount = subtotal
-                .multiply(promo.getDiscountPercent())
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-
-        // Appliquer réduction maximale si définie
-        if (promo.getMaxDiscount() != null && calculatedDiscount.compareTo(promo.getMaxDiscount()) > 0) {
-            calculatedDiscount = promo.getMaxDiscount();
-        }
-
-        this.discount = calculatedDiscount;
-        this.totalAmount = subtotal.subtract(discount).setScale(2, RoundingMode.HALF_UP);
+        calculateTotal(); // Recalculate using the new fields
     }
 
     public void removePromoCode() {
         this.promoCode = null;
         this.discount = null;
+        this.promoDiscountPercent = null;
+        this.promoMinAmount = null;
+        this.promoMaxDiscount = null;
         calculateTotal();
     }
 
@@ -125,5 +142,8 @@ public class Cart implements Serializable {
         totalAmount = BigDecimal.ZERO;
         promoCode = null;
         discount = null;
+        promoDiscountPercent = null;
+        promoMinAmount = null;
+        promoMaxDiscount = null;
     }
 }

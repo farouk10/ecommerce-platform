@@ -1,115 +1,554 @@
-<div class="dashboard-container">
-  <!-- Header Section -->
-  <div class="dashboard-header">
+<div class="space-y-6 animate-fade-in pb-8">
+  <!-- HEADER SECTION (Outside Grid) -->
+  <div
+    class="flex flex-col md:flex-row justify-between items-end gap-4 bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-white/20"
+  >
+    <!-- Left: Greeting -->
     <div>
-      <h1 class="page-title">Tableau de Bord</h1>
-      <p class="page-subtitle">
-        Aperçu de votre activité e-commerce en temps réel.
+      <div class="flex items-center gap-2 mb-1">
+        <span
+          class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-bold border border-indigo-100 uppercase tracking-wider"
+        >
+          {{ today | date : "EEEE dd MMMM" }}
+        </span>
+      </div>
+      <h1 class="text-2xl font-bold tracking-tight text-slate-900">
+        Bonjour, {{ user?.name || "Admin" }} 👋
+      </h1>
+      <p class="text-slate-500 text-sm mt-1">
+        Vous avez
+        <span class="font-bold text-indigo-600"
+          >{{ stats.pendingOrders }} commandes</span
+        >
+        à traiter aujourd'hui.
       </p>
     </div>
-    <div class="date-badge">
-      {{ today | date : "fullDate" }}
+
+    <!-- Right: Actions -->
+    <div class="flex gap-3">
+      <button
+        routerLink="/admin/products/new"
+        class="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-xl font-semibold shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all text-sm"
+      >
+        <span>+</span> Produit
+      </button>
+      <button
+        routerLink="/admin/orders"
+        class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-semibold shadow-md shadow-indigo-100 hover:bg-indigo-700 transition-all text-sm"
+      >
+        <span>📦</span> Commandes
+      </button>
     </div>
   </div>
 
-  <!-- Loading Skeleton -->
-  <div *ngIf="loading" class="loading-grid">
-    <div *ngFor="let i of [1, 2, 3, 4]" class="skeleton-card"></div>
-  </div>
+  <!-- MAIN GRID -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- 1. STATS ROW (4 Cols) -->
 
-  <!-- Stats Grid -->
-  <div *ngIf="!loading" class="stats-grid">
-    <!-- CA -->
-    <div class="stat-card border-green">
-      <div class="stat-content">
+    <!-- Revenue -->
+    <div
+      class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:border-indigo-100 transition-colors group relative overflow-hidden"
+    >
+      <div class="flex justify-between items-start z-10">
         <div>
-          <p class="stat-label">Chiffre d'affaires</p>
-          <h3 class="stat-value">
+          <p
+            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+          >
+            Revenus
+          </p>
+          <h3 class="text-2xl font-bold text-slate-900 mt-0.5">
             {{ stats.totalRevenue | currency : "MAD" : "symbol" : "1.0-0" }}
           </h3>
         </div>
-        <div class="stat-icon bg-green">💰</div>
+        <span
+          class="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md"
+          >+12%</span
+        >
       </div>
+      <!-- Sparkline -->
+      <svg
+        class="w-full h-10 text-indigo-500 opacity-30 group-hover:opacity-100 transition-opacity mt-2"
+        viewBox="0 0 100 30"
+        preserveAspectRatio="none"
+      >
+        <path
+          [attr.d]="
+            getSparklinePath(
+              salesChartData.length
+                ? revenueSparkline
+                : [10, 40, 30, 70, 50, 80, 60],
+              100,
+              30
+            )
+          "
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
     </div>
 
-    <!-- Commandes -->
-    <div class="stat-card border-blue">
-      <div class="stat-content">
+    <!-- Orders -->
+    <div
+      class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:border-blue-100 transition-colors group"
+    >
+      <div class="flex justify-between items-start">
         <div>
-          <p class="stat-label">Commandes Totales</p>
-          <h3 class="stat-value">{{ stats.totalOrders }}</h3>
-        </div>
-        <div class="stat-icon bg-blue">📦</div>
-      </div>
-    </div>
-
-    <!-- En Attente -->
-    <div class="stat-card border-orange">
-      <div class="stat-content">
-        <div>
-          <p class="stat-label">En Attente</p>
-          <h3 class="stat-value">{{ stats.pendingOrders }}</h3>
-        </div>
-        <div class="stat-icon bg-orange">⏳</div>
-      </div>
-    </div>
-
-    <!-- Produits -->
-    <div class="stat-card border-purple">
-      <div class="stat-content">
-        <div>
-          <p class="stat-label">Produits</p>
-          <h3 class="stat-value">{{ stats.totalProducts }}</h3>
-        </div>
-        <div class="stat-icon bg-purple">🛍️</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Content Grid -->
-  <div class="content-grid">
-    <!-- Quick Actions -->
-    <div class="card">
-      <h3 class="card-title">Actions Rapides</h3>
-      <div class="actions-grid">
-        <a routerLink="/admin/orders" class="action-btn hover-blue">
-          <div class="action-icon">📦</div>
-          <span class="action-text">Gérer les commandes</span>
-        </a>
-        <a routerLink="/admin/products" class="action-btn hover-purple">
-          <div class="action-icon">➕</div>
-          <span class="action-text">Ajouter un produit</span>
-        </a>
-        <a routerLink="/admin/promo" class="action-btn hover-green">
-          <div class="action-icon">🏷️</div>
-          <span class="action-text">Créer une promo</span>
-        </a>
-      </div>
-    </div>
-
-    <!-- Monthly Performance -->
-    <div class="card">
-      <h3 class="card-title">Performance du Mois</h3>
-      <ul class="performance-list">
-        <li class="performance-item">
-          <span class="perf-label">Nouvelles Commandes</span>
-          <span class="perf-value">{{ stats.ordersThisMonth }}</span>
-        </li>
-        <li class="performance-item">
-          <span class="perf-label">Revenus Générés</span>
-          <span class="perf-value text-green"
-            >+{{
-              stats.revenueThisMonth | currency : "MAD" : "symbol" : "1.0-0"
-            }}</span
+          <p
+            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
           >
-        </li>
-        <li class="performance-item">
-          <span class="perf-label">Nouveaux Clients</span>
-          <span class="perf-value text-blue"
-            >+{{ stats.newUsersThisMonth }}</span
+            Commandes
+          </p>
+          <h3 class="text-2xl font-bold text-slate-900 mt-0.5">
+            {{ stats.totalOrders }}
+          </h3>
+        </div>
+        <span
+          class="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md"
+          >+5%</span
+        >
+      </div>
+      <svg
+        class="w-full h-10 text-blue-500 opacity-30 group-hover:opacity-100 transition-opacity mt-2"
+        viewBox="0 0 100 30"
+        preserveAspectRatio="none"
+      >
+        <path
+          [attr.d]="getSparklinePath(ordersSparkline, 100, 30)"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
+    </div>
+
+    <!-- Products -->
+    <div
+      class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:border-purple-100 transition-colors group"
+    >
+      <div class="flex justify-between items-start">
+        <div>
+          <p
+            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
           >
-        </li>
-      </ul>
+            Produits
+          </p>
+          <h3 class="text-2xl font-bold text-slate-900 mt-0.5">
+            {{ stats.totalProducts }}
+          </h3>
+        </div>
+      </div>
+      <!-- Stock Status Visualization -->
+      <div class="mt-3">
+        <div
+          class="flex justify-between text-[10px] font-medium text-slate-500 mb-1"
+        >
+          <span>Etat du Stock</span>
+          <span>{{ stockStats[0] | number : "1.0-0" }}% En Stock</span>
+        </div>
+        <div
+          class="flex h-1.5 w-full rounded-full overflow-hidden bg-slate-100"
+        >
+          <div
+            class="bg-emerald-500 h-full transition-all duration-500"
+            [style.width.%]="stockStats[0]"
+          ></div>
+          <div
+            class="bg-amber-400 h-full transition-all duration-500"
+            [style.width.%]="stockStats[1]"
+          ></div>
+          <div
+            class="bg-red-400 h-full transition-all duration-500"
+            [style.width.%]="stockStats[2]"
+          ></div>
+        </div>
+        <div class="flex gap-2 mt-1.5 justify-end">
+          <span
+            *ngIf="stockStats[1] > 0"
+            class="text-[9px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded flex items-center gap-1"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Faible
+          </span>
+          <span
+            *ngIf="stockStats[2] > 0"
+            class="text-[9px] text-red-600 bg-red-50 px-1.5 py-0.5 rounded flex items-center gap-1"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Rupture
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div
+      class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:border-orange-100 transition-colors group"
+    >
+      <div class="flex justify-between items-start">
+        <div>
+          <p
+            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+          >
+            Utilisateurs
+          </p>
+          <h3 class="text-2xl font-bold text-slate-900 mt-0.5">
+            {{ stats.totalUsers }}
+          </h3>
+        </div>
+      </div>
+      <svg
+        class="w-full h-10 text-orange-500 opacity-30 group-hover:opacity-100 transition-opacity mt-2"
+        viewBox="0 0 100 30"
+        preserveAspectRatio="none"
+      >
+        <path
+          [attr.d]="getSparklinePath(usersSparkline, 100, 30)"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
+    </div>
+
+    <!-- 2. MAIN CHART (Span 3) -->
+    <div
+      class="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-slate-100 p-5 relative overflow-hidden"
+    >
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-base font-bold text-slate-900">Aperçu des Ventes</h3>
+          <p class="text-xs text-slate-500">Performance financière</p>
+        </div>
+        <div class="flex bg-slate-50 p-0.5 rounded-lg border border-slate-100">
+          <button
+            *ngFor="let r of ['WEEK', 'MONTH', 'YEAR']"
+            (click)="
+              updateChartRange(
+                r === 'WEEK' ? 'WEEK' : r === 'MONTH' ? 'MONTH' : 'YEAR'
+              )
+            "
+            class="px-2.5 py-1 text-[10px] font-bold rounded-md transition-all"
+            [ngClass]="
+              selectedRange === r
+                ? 'bg-white text-indigo-600 shadow-sm border border-slate-100'
+                : 'text-slate-400 hover:text-slate-600'
+            "
+          >
+            {{ r === "WEEK" ? "Semaine" : r === "MONTH" ? "Mois" : "Année" }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Chart Container -->
+      <div class="relative h-48 w-full" (mouseleave)="hoverIndex = -1">
+        <!-- Reuse existing SVG chart logic here -->
+        <svg
+          class="w-full h-full overflow-visible"
+          viewBox="0 0 300 100"
+          preserveAspectRatio="none"
+          (mousemove)="onChartMouseMove($event, chartContainer)"
+          #chartContainer
+        >
+          <defs>
+            <linearGradient id="chartGradient2" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#6366f1" stop-opacity="0.2" />
+              <stop offset="100%" stop-color="#6366f1" stop-opacity="0" />
+            </linearGradient>
+          </defs>
+
+          <!-- Grid & Y-Axis Labels -->
+          <!-- Moved grid lines to be full width, Labels slightly offset -->
+          <g class="text-slate-300">
+            <line
+              *ngFor="let y of [20, 55, 90]"
+              x1="0"
+              [attr.y1]="y"
+              x2="300"
+              [attr.y2]="y"
+              stroke="currentColor"
+              stroke-width="0.5"
+              stroke-dasharray="4 4"
+              class="opacity-50"
+            />
+
+            <!-- Y-Labels (Left side, minimal) -->
+            <text
+              x="0"
+              y="16"
+              class="text-[4px] font-bold fill-slate-400"
+              dominant-baseline="bottom"
+            >
+              {{ formatCompactNumber(getMaxChartValue()) }}
+            </text>
+            <text
+              x="0"
+              y="51"
+              class="text-[4px] font-bold fill-slate-400"
+              dominant-baseline="bottom"
+            >
+              {{ formatCompactNumber(getMaxChartValue() / 2) }}
+            </text>
+            <text
+              x="0"
+              y="86"
+              class="text-[4px] font-bold fill-slate-400"
+              dominant-baseline="bottom"
+            >
+              0
+            </text>
+
+            <text
+              x="298"
+              y="16"
+              class="text-[4px] font-bold fill-indigo-300 opacity-50"
+              text-anchor="end"
+              dominant-baseline="bottom"
+            >
+              MAD
+            </text>
+          </g>
+
+          <!-- X-Axis Labels -->
+          <g
+            class="text-[4px] font-medium fill-slate-500 select-none"
+            transform="translate(0, 98)"
+          >
+            <text
+              *ngFor="let d of getAxisLabels()"
+              [attr.x]="getXForLabel(d.label)"
+              text-anchor="middle"
+            >
+              {{ d.label }}
+            </text>
+          </g>
+
+          <!-- Chart Paths -->
+          <path
+            [attr.d]="getAreaPath()"
+            fill="url(#chartGradient2)"
+            class="transition-all duration-300 ease-out"
+          />
+          <path
+            [attr.d]="getChartPath()"
+            fill="none"
+            stroke="#6366f1"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="transition-all duration-300 ease-out"
+          />
+
+          <!-- Hover Interaction -->
+          <g *ngIf="hoverIndex !== -1 && salesChartData[hoverIndex]">
+            <line
+              [attr.x1]="getX(hoverIndex)"
+              y1="0"
+              [attr.x2]="getX(hoverIndex)"
+              y2="100"
+              stroke="#6366f1"
+              stroke-width="1"
+              stroke-dasharray="4 4"
+              class="opacity-50"
+            />
+            <circle
+              [attr.cx]="getX(hoverIndex)"
+              [attr.cy]="getY(salesChartData[hoverIndex].value)"
+              r="4"
+              fill="#6366f1"
+              stroke="white"
+              stroke-width="2"
+              class="shadow-lg"
+            />
+          </g>
+        </svg>
+
+        <!-- Tooltip -->
+        <div
+          *ngIf="hoverIndex !== -1 && salesChartData[hoverIndex]"
+          class="absolute pointer-events-none bg-slate-800 text-white text-[10px] rounded-md py-1 px-2 shadow-xl transform -translate-x-1/2 -translate-y-full transition-all duration-75 border border-slate-700 z-20"
+          [style.left.%]="(hoverIndex / (salesChartData.length - 1)) * 100"
+          [style.top.%]="
+            100 - (salesChartData[hoverIndex].value / getMaxChartValue()) * 80
+          "
+          style="margin-top: -12px"
+        >
+          <div class="font-bold mb-0">
+            {{
+              salesChartData[hoverIndex].value
+                | currency : "MAD" : "symbol" : "1.0-0"
+            }}
+          </div>
+          <div
+            class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-slate-800"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. ACTIVITY FEED (Span 1) -->
+    <div
+      class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex flex-col h-full"
+    >
+      <h3
+        class="text-base font-bold text-slate-900 mb-4 flex items-center gap-2"
+      >
+        Activité
+      </h3>
+      <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-48 pl-2">
+        <!-- Mock Activity Items -->
+        <div class="relative pl-4 border-l border-slate-100 space-y-5">
+          <div
+            *ngFor="let order of recentOrders.slice(0, 5)"
+            class="relative group"
+          >
+            <!-- Dot -->
+            <div
+              class="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-white border-2 border-slate-300 group-hover:border-indigo-500 group-hover:scale-110 transition-all z-10"
+            ></div>
+
+            <!-- Content -->
+            <div class="w-full">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p
+                    class="text-[10px] font-bold text-slate-400 uppercase tracking-wide"
+                  >
+                    {{ order.date | date : "HH:mm" }}
+                  </p>
+                  <p class="text-xs font-bold text-slate-800 mt-0.5">
+                    CMD
+                    <span
+                      class="text-indigo-600 hover:underline cursor-pointer"
+                      [routerLink]="['/admin/orders', order.id]"
+                      >#{{ order.orderNumber }}</span
+                    >
+                  </p>
+                </div>
+                <div
+                  class="font-bold text-[10px] text-slate-700 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100"
+                >
+                  {{ order.amount | currency : "MAD" : "symbol" : "1.0-0" }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-auto pt-3 border-t border-slate-50">
+        <button
+          routerLink="/admin/orders"
+          class="w-full text-center text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors"
+        >
+          Voir tout
+        </button>
+      </div>
+    </div>
+
+    <!-- 4. RECENT ORDERS TABLE (Span 4) -->
+    <div
+      class="lg:col-span-4 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"
+    >
+      <div
+        class="p-5 border-b border-slate-50 flex items-center justify-between"
+      >
+        <h3 class="text-base font-bold text-slate-900">Dernières Commandes</h3>
+        <button
+          routerLink="/admin/orders"
+          class="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          Tout Voir
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead class="bg-slate-50/50">
+            <tr>
+              <th
+                class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider"
+              >
+                Commande
+              </th>
+              <th
+                class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider"
+              >
+                Client
+              </th>
+              <th
+                class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider"
+              >
+                Date
+              </th>
+              <th
+                class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider"
+              >
+                Montant
+              </th>
+              <th
+                class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider"
+              >
+                Statut
+              </th>
+              <th class="px-6 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            <tr
+              *ngFor="let order of recentOrders"
+              class="group hover:bg-slate-50 transition-colors"
+            >
+              <td class="px-6 py-3 font-bold text-indigo-600 text-xs">
+                #{{ order.orderNumber }}
+              </td>
+              <td class="px-6 py-3">
+                <div class="flex items-center gap-2">
+                  <div
+                    class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-[10px] font-bold text-indigo-700"
+                  >
+                    {{ order.avatar }}
+                  </div>
+                  <span class="text-xs font-medium text-slate-700">{{
+                    order.customer
+                  }}</span>
+                </div>
+              </td>
+              <td class="px-6 py-3 text-xs text-slate-500">
+                {{ order.date | date : "dd MMM, HH:mm" }}
+              </td>
+              <td class="px-6 py-3 font-bold text-slate-900 text-xs">
+                {{ order.amount | currency : "MAD" : "symbol" : "1.0-0" }}
+              </td>
+              <td class="px-6 py-3">
+                <span
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                  [ngClass]="{
+                    'bg-emerald-50 text-emerald-700 border-emerald-100':
+                      order.status === 'DELIVERED',
+                    'bg-blue-50 text-blue-700 border-blue-100':
+                      order.status === 'SHIPPED',
+                    'bg-amber-50 text-amber-700 border-amber-100':
+                      order.status === 'PROCESSING' ||
+                      order.status === 'PENDING',
+                    'bg-red-50 text-red-700 border-red-100':
+                      order.status === 'CANCELLED'
+                  }"
+                >
+                  {{ order.status }}
+                </span>
+              </td>
+              <td class="px-6 py-3 text-right">
+                <a
+                  [routerLink]="['/admin/orders', order.id]"
+                  class="text-slate-400 hover:text-indigo-600 transition-colors"
+                >
+                  &rarr;
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>

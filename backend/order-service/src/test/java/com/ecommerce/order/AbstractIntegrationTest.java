@@ -12,7 +12,7 @@ import org.testcontainers.utility.DockerImageName;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public abstract class AbstractIntegrationTest {
 
-        @org.springframework.boot.test.mock.mockito.MockBean
+        @org.springframework.test.context.bean.override.mockito.MockitoBean
         protected org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;
 
         static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:15"))
