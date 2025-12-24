@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   # POSTGRES DATABASE
@@ -35,6 +35,9 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
     networks:
       - ecommerce-network
 
@@ -52,6 +55,8 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    volumes:
+      - kafka_data:/var/lib/kafka/data
     networks:
       - ecommerce-network
 
@@ -138,6 +143,8 @@ services:
       - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888/
       - PRODUCT_SERVICE_URL=http://product-service:8082/api/products
       - AUTH_SERVICE_URL=http://auth-service:8081/api
+      - SERVICES_PRODUCT_URL=http://product-service:8082/api/products
+      - SERVICES_AUTH_URL=http://auth-service:8081/api
     depends_on:
       - config-server
       - postgres
@@ -189,6 +196,7 @@ services:
       - PRODUCT_SERVICE_URL=http://product-service:8082
       - ORDER_SERVICE_URL=http://order-service:8083
       - CART_SERVICE_URL=http://cart-service:8084
+      - PAYMENT_SERVICE_URL=http://payment-service:8084
       - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888/
     depends_on:
       - config-server
@@ -217,10 +225,55 @@ services:
     networks:
       - ecommerce-network
 
+  # Payment Service
+  payment-db:
+    image: postgres:15-alpine
+    container_name: payment-db
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: ecommerce
+      POSTGRES_PASSWORD: ecommerce123
+    ports:
+      - "5435:5432"
+    volumes:
+      - payment_data:/var/lib/postgresql/data
+    networks:
+      - ecommerce-network
+
+  payment-service:
+    build:
+      context: ./backend
+      dockerfile: payment-service/Dockerfile.dev
+    container_name: payment-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: 'false'
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://payment-db:5432/payment_db
+      SPRING_DATASOURCE_USERNAME: ecommerce
+      SPRING_DATASOURCE_PASSWORD: ecommerce123
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+      STRIPE_WEBHOOK_SECRET: whsec_placeholder_secret
+      SERVER_PORT: 8084
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - payment-db
+      - kafka
+      - config-server
+    ports:
+      - "8087:8084"
+    networks:
+      - ecommerce-network
+
 networks:
   ecommerce-network:
     driver: bridge
 
+
 volumes:
   postgres_data:
   product-uploads:
+  payment_data:
+  zookeeper_data:
+  zookeeper_log:
+  kafka_data:

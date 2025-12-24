@@ -37,7 +37,8 @@ public class SecurityConfig {
 
                         // ✅ ADMIN ENDPOINTS (Must be BEFORE general /api/orders/** patterns)
                         // ✅ ADMIN ENDPOINTS (Must be BEFORE general /api/orders/** patterns)
-                        .requestMatchers("/api/orders/stats").hasRole("ADMIN")
+                        .requestMatchers("/api/orders/stats/**").hasRole("ADMIN") // Include sub-paths like top-products
+                        .requestMatchers("/api/orders/recent").hasRole("ADMIN")
                         .requestMatchers("/api/orders/all").hasRole("ADMIN")
 
                         // ✅ ROUTES COMMANDES (Accessibles aux authentifiés : Customer & Admin)

@@ -36,6 +36,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<OrderDto> getOrdersByUserId(String userId) {
         return orderRepository.findByUserId(userId).stream()
+                .filter(o -> o.getStatus() != OrderStatus.PENDING)
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
@@ -110,7 +111,8 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
         log.info("Order created successfully: {}", savedOrder.getOrderNumber());
 
-        publishOrderEvent(savedOrder, "OrderCreated");
+        // Emit Initiated event (ignored by notification service)
+        publishOrderEvent(savedOrder, "OrderInitiated");
 
         return convertToDto(savedOrder);
     }
@@ -122,6 +124,21 @@ public class OrderService {
         }
         orderRepository.deleteById(id);
         log.info("Order deleted: {}", id);
+    }
+
+    @Transactional
+    public void confirmOrderPayment(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (order.getStatus() != OrderStatus.CONFIRMED && order.getStatus() != OrderStatus.SHIPPED) {
+            order.setStatus(OrderStatus.CONFIRMED);
+            Order saved = orderRepository.save(order);
+            log.info("Order {} confirmed via payment (Service method)", order.getId());
+
+            // Emit OrderCreated now to trigger the confirmation email
+            publishOrderEvent(saved, "OrderCreated");
+        }
     }
 
     private void publishOrderEvent(Order order, String eventType) {
@@ -159,7 +176,7 @@ public class OrderService {
         }
 
         return AdminStatsDto.builder()
-                .totalOrders((int) orderRepository.count())
+                .totalOrders((int) orderRepository.countValidOrders())
                 .totalRevenue(orderRepository.sumTotalRevenue())
                 .pendingOrders((int) orderRepository.countByStatus(OrderStatus.PENDING))
                 .confirmedOrders((int) orderRepository.countByStatus(OrderStatus.CONFIRMED))
@@ -174,13 +191,14 @@ public class OrderService {
     }
 
     public List<OrderDto> getAllOrders() {
-        List<Order> orders = orderRepository.findAll(org.springframework.data.domain.Sort
-                .by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
-        return orders.stream().map(order -> {
-            OrderDto dto = convertToDto(order);
-            enrichWithUserInfo(dto);
-            return dto;
-        }).collect(Collectors.toList());
+        List<Order> orders = orderRepository.findAllValidOrders();
+        return orders.stream()
+                .filter(o -> o.getStatus() != OrderStatus.PENDING)
+                .map(order -> {
+                    OrderDto dto = convertToDto(order);
+                    enrichWithUserInfo(dto);
+                    return dto;
+                }).collect(Collectors.toList());
     }
 
     @Transactional
@@ -284,9 +302,8 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public List<OrderDto> getRecentOrders(int limit) {
-        org.springframework.data.domain.Page<Order> page = orderRepository.findAll(
-                org.springframework.data.domain.PageRequest.of(0, limit,
-                        org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        org.springframework.data.domain.Page<Order> page = orderRepository.findRecentValidOrders(
+                org.springframework.data.domain.PageRequest.of(0, limit));
         return page.getContent().stream().map(order -> {
             OrderDto dto = convertToDto(order);
             enrichWithUserInfo(dto);

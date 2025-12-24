@@ -2,7 +2,14 @@ spring:
   application:
     name: order-service
   config:
-    import: "optional:configserver:http://localhost:8888/"
+    import: "optional:configserver:http://config-server:8888/"
+  kafka:
+    consumer:
+      group-id: order-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
 
 # Minimal local config, remainder in Config Server
 server:

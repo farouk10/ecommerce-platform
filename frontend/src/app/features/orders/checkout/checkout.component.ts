@@ -19,6 +19,9 @@ import {
   PhoneNumberFormat,
 } from 'ngx-intl-tel-input';
 import { COUNTRIES } from '../../../shared/data/countries';
+import { environment } from '../../../../environments/environment';
+import { PaymentService } from '../../../core/services/payment.service';
+import { PaymentFormComponent } from '../payment/payment-form.component';
 
 @Component({
   selector: 'app-checkout',
@@ -28,12 +31,12 @@ import { COUNTRIES } from '../../../shared/data/countries';
     FormsModule,
     ReactiveFormsModule,
     NgxIntlTelInputModule,
+    PaymentFormComponent,
   ],
   templateUrl: './checkout.component.html',
   styleUrl: './checkout.component.css',
 })
 export class CheckoutComponent implements OnInit {
-  // Enum exposure
   SearchCountryField = SearchCountryField;
   CountryISO = CountryISO;
   PhoneNumberFormat = PhoneNumberFormat;
@@ -50,22 +53,24 @@ export class CheckoutComponent implements OnInit {
   isSubmitting = false;
   errorMessage = '';
 
-  // Saved Addresses
   savedAddresses: Address[] = [];
   selectedAddress: Address | null = null;
 
-  // Promo
   promoCode = '';
   promoCodeApplied: string | null = null;
   discount = 0;
 
-  // Étapes
-  currentStep: 'cart' | 'shipping' | 'confirmation' = 'cart';
+  currentStep: 'cart' | 'shipping' | 'payment' | 'confirmation' = 'cart';
+
+  stripeClientSecret: string | null = null;
+  currentOrderId: number | null = null;
+  pendingAmount: number | null = null;
 
   constructor(
     private cartService: CartService,
     private orderService: OrderService,
     private authService: AuthService,
+    private paymentService: PaymentService,
     private fb: FormBuilder,
     private router: Router,
     private route: ActivatedRoute
@@ -79,33 +84,40 @@ export class CheckoutComponent implements OnInit {
       phoneNumber: ['', [Validators.required]],
     });
 
-    // Reset selected address if form is modified manually
-    this.shippingForm.valueChanges.subscribe(() => {
-      // Ideally we check if values still match selectedAddress, but simplest is to just clear selection
-      // if the user types. However, onAddressSelect patches values, which triggers this.
-      // We need a flag or distinctUntilChanged check, or just ignore for now.
-      // For this task, let's just assume if they type, it might be a new address.
-    });
+    this.shippingForm.valueChanges.subscribe(() => {});
   }
 
   ngOnInit(): void {
+    // Check for pending checkout state logic
+    const pendingState = localStorage.getItem('checkout_pending');
+    if (pendingState) {
+      try {
+        const state = JSON.parse(pendingState);
+        this.currentOrderId = state.orderId;
+        this.stripeClientSecret = state.clientSecret;
+        this.pendingAmount = state.amount;
+        this.currentStep = 'payment';
+        return; // Skip normal cart loading
+      } catch (e) {
+        console.error('Error parsing pending state', e);
+        localStorage.removeItem('checkout_pending');
+      }
+    }
+
     const mode = this.route.snapshot.queryParamMap.get('mode');
 
     if (mode === 'direct') {
       const directItem = this.cartService.getDirectBuyItem();
       if (directItem) {
         this.cartItems = [directItem];
-        this.currentStep = 'shipping'; // Direct checkout starts at shipping
+        this.currentStep = 'shipping';
         this.promoCodeApplied = null;
         this.discount = 0;
       } else {
-        // Fallback if refreshed page loses state
         this.router.navigate(['/products']);
       }
     } else {
       this.loadCart();
-      // Check for query param 'step' AFTER loading cart
-      // (Keep existing logic if not direct mode)
       this.route.queryParamMap.subscribe((params) => {
         if (params.get('step') === 'shipping' && this.cartItems.length > 0) {
           this.currentStep = 'shipping';
@@ -119,7 +131,6 @@ export class CheckoutComponent implements OnInit {
   loadCart(): void {
     this.cartService.getCart().subscribe({
       next: (cart) => {
-        // Only load if NOT in direct mode (handled in ngOnInit)
         if (this.route.snapshot.queryParamMap.get('mode') !== 'direct') {
           this.cartItems = cart.items;
           this.promoCodeApplied = cart.promoCode;
@@ -134,7 +145,6 @@ export class CheckoutComponent implements OnInit {
   }
 
   loadSavedAddresses(): void {
-    // Only fetch structured addresses from Profile
     this.authService.getAddresses().subscribe({
       next: (addresses) => {
         this.savedAddresses = addresses;
@@ -171,7 +181,6 @@ export class CheckoutComponent implements OnInit {
   }
 
   getTotal(): number {
-    // Total backend (déjà avec réduction) + livraison
     if (this.route.snapshot.queryParamMap.get('mode') === 'direct') {
       const subtotal = this.getSubtotal();
       return subtotal + this.getShippingCost() - this.discount;
@@ -227,7 +236,6 @@ export class CheckoutComponent implements OnInit {
       },
       error: (error) => {
         console.error('Erreur promo:', error);
-        // ✅ AFFICHER LE MESSAGE PRÉCIS DU BACKEND
         const msg = error.error?.error || 'Code promo invalide ou expiré';
         alert('Erreur: ' + msg);
       },
@@ -269,13 +277,11 @@ export class CheckoutComponent implements OnInit {
 
     const v = this.shippingForm.value;
 
-    // Extract E.164 phone number
     let phoneNumber = v.phoneNumber;
     if (phoneNumber && typeof phoneNumber === 'object') {
       phoneNumber = phoneNumber.e164Number;
     }
 
-    // Auto-save new address to profile
     if (!this.selectedAddress) {
       const newAddress: Address = {
         fullName: v.fullName,
@@ -285,67 +291,94 @@ export class CheckoutComponent implements OnInit {
         country: v.country,
         phoneNumber: phoneNumber,
       };
-
-      // We don't wait for this to complete to prevent blocking checkout,
-      // or we can wait to ensure consistency. Let's wait.
-      this.authService.addAddress(newAddress).subscribe({
-        next: (saved) => console.log('Address auto-saved:', saved),
-        error: (err) => console.error('Failed to auto-save address:', err),
-      });
+      this.authService.addAddress(newAddress).subscribe();
     }
 
     const shippingAddress = `${v.street}, ${v.postalCode} ${v.city}, ${v.country} - Tel: ${phoneNumber}`;
 
-    if (this.route.snapshot.queryParamMap.get('mode') === 'direct') {
-      // DIRECT CHECKOUT
-      const item = this.cartItems[0];
-      this.cartService
-        .checkoutDirect(
-          shippingAddress,
-          item.productId,
-          item.quantity,
-          PaymentMethod.CREDIT_CARD
-        )
-        .subscribe({
-          next: (response) => {
-            console.log('Commande DIRECTE créée:', response);
-            this.currentStep = 'confirmation';
-            this.isSubmitting = false;
+    const checkoutObs =
+      this.route.snapshot.queryParamMap.get('mode') === 'direct'
+        ? this.cartService.checkoutDirect(
+            shippingAddress,
+            this.cartItems[0].productId,
+            this.cartItems[0].quantity,
+            PaymentMethod.CREDIT_CARD
+          )
+        : this.cartService.checkout(shippingAddress, PaymentMethod.CREDIT_CARD);
 
-            setTimeout(() => {
-              this.router.navigate(['/orders', response.order.id]);
-            }, 3000);
-          },
-          error: (error) => {
-            console.error('Erreur checkout direct:', error);
-            this.isSubmitting = false;
-            this.errorMessage =
-              'Impossible de créer la commande. Veuillez réessayer.';
-          },
-        });
+    checkoutObs.subscribe({
+      next: (response) => {
+        console.log('Order Created (Pending Payment):', response);
+        this.currentOrderId = response.order.id;
+        this.initiatePaymentFlow(this.currentOrderId!);
+      },
+      error: (error) => {
+        console.error('Error creating order:', error);
+        this.isSubmitting = false;
+        this.errorMessage =
+          'Impossible de créer la commande. Veuillez réessayer.';
+      },
+    });
+  }
+
+  initiatePaymentFlow(orderId: number): void {
+    this.currentStep = 'payment';
+    this.isSubmitting = false;
+
+    const amount = this.getTotal();
+
+    this.paymentService.initiatePayment(orderId, amount, 'eur').subscribe({
+      next: (res) => {
+        console.log('Stripe Intent Created:', res);
+        this.stripeClientSecret = res.clientSecret;
+
+        // Persist state for refresh recovery
+        localStorage.setItem(
+          'checkout_pending',
+          JSON.stringify({
+            orderId: orderId,
+            clientSecret: res.clientSecret,
+            amount: amount,
+          })
+        );
+      },
+      error: (err) => {
+        console.error('Payment Init Error:', err);
+        this.errorMessage = 'Erreur initialisation paiement.';
+        this.currentStep = 'shipping';
+      },
+    });
+  }
+
+  onPaymentSuccess(): void {
+    const finalize = () => {
+      this.currentStep = 'confirmation';
+      this.cartService.clearCart();
+      localStorage.removeItem('checkout_pending');
+    };
+
+    if (this.currentOrderId) {
+      // Trigger manual verification to ensure backend status updates (useful if webhooks fail)
+      this.paymentService.verifyPayment(this.currentOrderId).subscribe({
+        next: (success) => {
+          console.log('Backend verification result:', success);
+          finalize();
+        },
+        error: (err) => {
+          console.warn('Backend verification failed, relying on webhook:', err);
+          finalize();
+        },
+      });
     } else {
-      // STANDARD CHECKOUT
-      this.cartService
-        .checkout(shippingAddress, PaymentMethod.CREDIT_CARD)
-        .subscribe({
-          next: (response) => {
-            console.log('Commande créée:', response);
-            this.currentStep = 'confirmation';
-            this.isSubmitting = false;
-
-            setTimeout(() => {
-              this.router.navigate(['/orders', response.order.id]);
-            }, 3000);
-          },
-          error: (error) => {
-            console.error('Erreur checkout:', error);
-            this.isSubmitting = false;
-            this.errorMessage =
-              'Impossible de créer la commande. Veuillez réessayer.';
-          },
-        });
+      finalize();
     }
   }
+
+  isStepComplete(step: string): boolean {
+    const steps = ['cart', 'shipping', 'payment', 'confirmation'];
+    return steps.indexOf(step) < steps.indexOf(this.currentStep);
+  }
+
   get fullName() {
     return this.shippingForm.get('fullName');
   }

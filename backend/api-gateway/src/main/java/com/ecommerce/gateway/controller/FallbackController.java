@@ -35,4 +35,12 @@ public class FallbackController {
         response.put("status", "503");
         return Mono.just(response);
     }
+
+    @GetMapping("/payments")
+    public Mono<Map<String, String>> paymentServiceFallback() {
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Payment Service is currently unavailable. Please try again later.");
+        response.put("status", "503");
+        return Mono.just(response);
+    }
 }

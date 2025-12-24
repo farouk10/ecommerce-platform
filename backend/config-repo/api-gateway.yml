@@ -5,7 +5,7 @@ spring:
         - id: product-service
           uri: ${PRODUCT_SERVICE_URL:http://localhost:8082}
           predicates:
-            - Path=/api/products/**
+            - Path=/api/products/**, /api/categories/**
           filters:
             - name: CircuitBreaker
               args:
@@ -33,6 +33,15 @@ spring:
           uri: ${CART_SERVICE_URL:http://localhost:8084}
           predicates:
             - Path=/api/cart/**
+        - id: payment-service
+          uri: ${PAYMENT_SERVICE_URL:http://localhost:8087}
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: paymentServiceCircuitBreaker
+                fallbackUri: forward:/fallback/payments
 
 
       globalcors:

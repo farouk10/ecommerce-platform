@@ -117,6 +117,16 @@ export class OrderDetailComponent implements OnInit {
       return null;
     };
 
+    if (status === OrderStatus.CANCELLED) {
+      events.push({
+        title: 'Commande Annulée',
+        desc: 'La commande a été annulée.',
+        date: this.order.updatedAt,
+        icon: '❌',
+        done: true,
+      });
+    }
+
     if (isPassed(OrderStatus.CONFIRMED)) {
       events.push({
         title: 'Paiement confirmé',

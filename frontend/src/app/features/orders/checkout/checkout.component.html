@@ -15,6 +15,7 @@
       <!-- Steps Indicator -->
       <nav aria-label="Progress">
         <ol role="list" class="flex items-center justify-center space-x-8">
+          <!-- STEP 1: CART -->
           <li class="relative pr-8 sm:pr-20">
             <div
               class="absolute inset-0 flex items-center"
@@ -32,14 +33,25 @@
             </div>
             <a
               href="#"
-              class="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 hover:bg-primary-900 group"
+              class="relative flex h-8 w-8 items-center justify-center rounded-full"
+              [class.bg-primary-600]="
+                currentStep === 'cart' || isStepComplete('cart')
+              "
+              [class.bg-white]="
+                currentStep !== 'cart' && !isStepComplete('cart')
+              "
+              [class.border-2]="
+                currentStep !== 'cart' && !isStepComplete('cart')
+              "
+              [class.border-slate-300]="
+                currentStep !== 'cart' && !isStepComplete('cart')
+              "
             >
               <svg
+                *ngIf="isStepComplete('cart')"
                 class="h-5 w-5 text-white"
                 viewBox="0 0 20 20"
                 fill="currentColor"
-                aria-hidden="true"
-                *ngIf="currentStep !== 'cart'"
               >
                 <path
                   fill-rule="evenodd"
@@ -48,57 +60,61 @@
                 />
               </svg>
               <span
-                class="text-white text-sm font-bold"
                 *ngIf="currentStep === 'cart'"
+                class="text-white text-sm font-bold"
                 >1</span
               >
               <span
-                class="absolute -bottom-8 w-32 text-center text-xs font-semibold text-primary-600"
+                class="absolute -bottom-8 w-32 text-center text-xs font-semibold"
+                [class.text-primary-600]="
+                  currentStep === 'cart' || isStepComplete('cart')
+                "
+                [class.text-slate-500]="
+                  currentStep !== 'cart' && !isStepComplete('cart')
+                "
                 >Panier</span
               >
             </a>
           </li>
 
+          <!-- STEP 2: SHIPPING -->
           <li class="relative pr-8 sm:pr-20">
             <div
               class="absolute inset-0 flex items-center"
               aria-hidden="true"
-              *ngIf="currentStep === 'confirmation'"
+              *ngIf="isStepComplete('shipping')"
             >
               <div class="h-0.5 w-full bg-primary-600"></div>
             </div>
             <div
               class="absolute inset-0 flex items-center"
               aria-hidden="true"
-              *ngIf="currentStep !== 'confirmation'"
+              *ngIf="!isStepComplete('shipping')"
             >
               <div class="h-0.5 w-full bg-slate-200"></div>
             </div>
             <a
               href="#"
-              class="relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary-600 bg-white"
-              aria-current="step"
-              *ngIf="currentStep === 'shipping'"
-            >
-              <span
-                class="h-2.5 w-2.5 rounded-full bg-primary-600"
-                aria-hidden="true"
-              ></span>
-              <span
-                class="absolute -bottom-8 w-32 text-center text-xs font-semibold text-primary-600"
-                >Livraison</span
-              >
-            </a>
-            <a
-              href="#"
-              class="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 hover:bg-primary-900"
-              *ngIf="currentStep === 'confirmation'"
+              class="relative flex h-8 w-8 items-center justify-center rounded-full"
+              [class.bg-primary-600]="
+                currentStep === 'shipping' || isStepComplete('shipping')
+              "
+              [class.bg-white]="
+                currentStep !== 'shipping' && !isStepComplete('shipping')
+              "
+              [class.border-2]="
+                currentStep !== 'shipping' && !isStepComplete('shipping')
+              "
+              [class.border-slate-300]="
+                currentStep !== 'shipping' && !isStepComplete('shipping')
+              "
+              [class.border-primary-600]="currentStep === 'shipping'"
             >
               <svg
+                *ngIf="isStepComplete('shipping')"
                 class="h-5 w-5 text-white"
                 viewBox="0 0 20 20"
                 fill="currentColor"
-                aria-hidden="true"
               >
                 <path
                   fill-rule="evenodd"
@@ -107,47 +123,135 @@
                 />
               </svg>
               <span
-                class="absolute -bottom-8 w-32 text-center text-xs font-semibold text-primary-600"
-                >Livraison</span
+                *ngIf="currentStep === 'shipping'"
+                class="text-white text-sm font-bold"
+                >2</span
               >
-            </a>
-            <a
-              href="#"
-              class="relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-slate-300 bg-white hover:border-slate-400"
-              *ngIf="currentStep === 'cart'"
-            >
-              <span class="text-slate-500 text-sm font-medium">2</span>
+              <!-- Active -->
               <span
-                class="absolute -bottom-8 w-32 text-center text-xs font-medium text-slate-500"
+                *ngIf="
+                  !isStepComplete('shipping') && currentStep !== 'shipping'
+                "
+                class="text-slate-500 text-sm font-bold"
+                >2</span
+              >
+              <!-- Future -->
+
+              <span
+                class="absolute -bottom-8 w-32 text-center text-xs font-semibold"
+                [class.text-primary-600]="
+                  currentStep === 'shipping' || isStepComplete('shipping')
+                "
+                [class.text-slate-500]="
+                  !isStepComplete('shipping') && currentStep !== 'shipping'
+                "
                 >Livraison</span
               >
             </a>
           </li>
 
+          <!-- STEP 3: PAYMENT -->
+          <li class="relative pr-8 sm:pr-20">
+            <div
+              class="absolute inset-0 flex items-center"
+              aria-hidden="true"
+              *ngIf="isStepComplete('payment')"
+            >
+              <div class="h-0.5 w-full bg-primary-600"></div>
+            </div>
+            <div
+              class="absolute inset-0 flex items-center"
+              aria-hidden="true"
+              *ngIf="!isStepComplete('payment')"
+            >
+              <div class="h-0.5 w-full bg-slate-200"></div>
+            </div>
+            <a
+              href="#"
+              class="relative flex h-8 w-8 items-center justify-center rounded-full"
+              [class.bg-primary-600]="
+                currentStep === 'payment' || isStepComplete('payment')
+              "
+              [class.bg-white]="
+                currentStep !== 'payment' && !isStepComplete('payment')
+              "
+              [class.border-2]="
+                currentStep !== 'payment' && !isStepComplete('payment')
+              "
+              [class.border-slate-300]="
+                currentStep !== 'payment' && !isStepComplete('payment')
+              "
+              [class.border-primary-600]="currentStep === 'payment'"
+            >
+              <svg
+                *ngIf="isStepComplete('payment')"
+                class="h-5 w-5 text-white"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              <span
+                *ngIf="currentStep === 'payment'"
+                class="text-white text-sm font-bold"
+                >3</span
+              >
+              <span
+                *ngIf="!isStepComplete('payment') && currentStep !== 'payment'"
+                class="text-slate-500 text-sm font-bold"
+                >3</span
+              >
+
+              <span
+                class="absolute -bottom-8 w-32 text-center text-xs font-semibold"
+                [class.text-primary-600]="
+                  currentStep === 'payment' || isStepComplete('payment')
+                "
+                [class.text-slate-500]="
+                  !isStepComplete('payment') && currentStep !== 'payment'
+                "
+                >Paiement</span
+              >
+            </a>
+          </li>
+
+          <!-- STEP 4: CONFIRMATION -->
           <li class="relative">
             <a
               href="#"
-              class="relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary-600 bg-white"
-              aria-current="step"
-              *ngIf="currentStep === 'confirmation'"
+              class="relative flex h-8 w-8 items-center justify-center rounded-full border-2"
+              [class.border-primary-600]="currentStep === 'confirmation'"
+              [class.bg-primary-600]="currentStep === 'confirmation'"
+              [class.text-white]="currentStep === 'confirmation'"
+              [class.border-slate-300]="currentStep !== 'confirmation'"
+              [class.bg-white]="currentStep !== 'confirmation'"
+              [class.text-slate-500]="currentStep !== 'confirmation'"
             >
-              <span
-                class="h-2.5 w-2.5 rounded-full bg-primary-600"
-                aria-hidden="true"
-              ></span>
-              <span
-                class="absolute -bottom-8 w-32 text-center text-xs font-semibold text-primary-600"
-                >Confirmation</span
+              <svg
+                *ngIf="currentStep === 'confirmation'"
+                class="h-5 w-5 text-white"
+                viewBox="0 0 20 20"
+                fill="currentColor"
               >
-            </a>
-            <a
-              href="#"
-              class="relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-slate-300 bg-white hover:border-slate-400"
-              *ngIf="currentStep !== 'confirmation'"
-            >
-              <span class="text-slate-500 text-sm font-medium">3</span>
+                <path
+                  fill-rule="evenodd"
+                  d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                  clip-rule="evenodd"
+                />
+              </svg>
               <span
-                class="absolute -bottom-8 w-32 text-center text-xs font-medium text-slate-500"
+                *ngIf="currentStep !== 'confirmation'"
+                class="text-sm font-bold"
+                >4</span
+              >
+              <span
+                class="absolute -bottom-8 w-32 text-center text-xs font-semibold"
+                [class.text-primary-600]="currentStep === 'confirmation'"
+                [class.text-slate-500]="currentStep !== 'confirmation'"
                 >Confirmation</span
               >
             </a>
@@ -642,6 +746,115 @@
             <div class="flex justify-between">
               <span class="text-slate-500">Sous-total</span>
               <span class="font-medium">{{ formatPrice(getSubtotal()) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Livraison</span>
+              <span class="font-medium">{{
+                formatPrice(getShippingCost())
+              }}</span>
+            </div>
+            <div
+              class="flex justify-between pt-2 text-base font-bold text-slate-900 border-t border-slate-100 mt-2"
+            >
+              <span>Total</span>
+              <span>{{ formatPrice(getTotal()) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYMENT STEP (REFACTORED) -->
+    <div
+      *ngIf="currentStep === 'payment'"
+      class="flex flex-col lg:flex-row gap-8"
+    >
+      <!-- Left: Payment Element -->
+      <div class="lg:w-2/3">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+          <h2 class="text-2xl font-bold text-slate-900 mb-6">
+            Paiement Sécurisé
+          </h2>
+
+          <!-- New Payment Form Component -->
+          <div *ngIf="stripeClientSecret">
+            <app-payment-form
+              [clientSecret]="stripeClientSecret"
+              [amount]="pendingAmount || getTotal()"
+              [orderId]="currentOrderId!"
+              (paymentSuccess)="onPaymentSuccess()"
+            ></app-payment-form>
+          </div>
+
+          <!-- Loading State -->
+          <div *ngIf="!stripeClientSecret" class="text-center py-10">
+            <svg
+              class="animate-spin h-10 w-10 text-primary-600 mx-auto"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            <p class="mt-4 text-slate-500">Préparation de votre paiement...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Recap (Same as Shipping) -->
+      <div class="lg:w-1/3">
+        <div
+          class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-24"
+        >
+          <h3
+            class="text-sm font-bold text-slate-900 uppercase tracking-wide border-b border-slate-100 pb-2 mb-4"
+          >
+            Récapitulatif
+          </h3>
+          <ul class="space-y-4 mb-6">
+            <li *ngFor="let item of cartItems" class="flex gap-4">
+              <div
+                class="w-12 h-12 bg-slate-50 rounded border border-slate-100 overflow-hidden flex-shrink-0"
+              >
+                <img
+                  [src]="item.images?.[0] || item.imageUrl"
+                  class="w-full h-full object-cover"
+                />
+              </div>
+              <div class="flex-grow">
+                <p class="text-sm font-medium text-slate-900 line-clamp-1">
+                  {{ item.productName }}
+                </p>
+                <p class="text-xs text-slate-500">Qty: {{ item.quantity }}</p>
+              </div>
+              <div class="text-sm font-bold text-slate-900">
+                {{ formatPrice(item.price * item.quantity) }}
+              </div>
+            </li>
+          </ul>
+          <div class="border-t border-slate-100 pt-4 space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-slate-500">Sous-total</span>
+              <span class="font-medium">{{ formatPrice(getSubtotal()) }}</span>
+            </div>
+            <div
+              *ngIf="discount > 0"
+              class="flex justify-between text-emerald-600"
+            >
+              <span>Réduction</span>
+              <span>-{{ formatPrice(discount) }}</span>
             </div>
             <div class="flex justify-between">
               <span class="text-slate-500">Livraison</span>

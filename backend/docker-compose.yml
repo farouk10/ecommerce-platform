@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   # PostgreSQL pour Auth Service
@@ -118,10 +118,49 @@ services:
     networks:
       - ecommerce-network
 
+  # PostgreSQL pour Payment Service
+  payment-db:
+    image: postgres:15-alpine
+    container_name: payment-db
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: ecommerce
+      POSTGRES_PASSWORD: ecommerce123
+    ports:
+      - "5435:5432"
+    volumes:
+      - payment_data:/var/lib/postgresql/data
+    networks:
+      - ecommerce-network
+
+  # Payment Service
+  # Payment Service
+  payment-service:
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+    container_name: payment-service
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://payment-db:5432/payment_db
+      SPRING_DATASOURCE_USERNAME: ecommerce
+      SPRING_DATASOURCE_PASSWORD: ecommerce123
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+      STRIPE_WEBHOOK_SECRET: whsec_placeholder_secret
+    depends_on:
+      - payment-db
+      - kafka
+    ports:
+      - "8087:8084"
+    networks:
+      - ecommerce-network
+
 volumes:
   auth_data:
   product_data:
   order_data:
+  payment_data:
   redis_data:
 
 networks:
